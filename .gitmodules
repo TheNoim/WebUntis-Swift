@@ -1,0 +1,9 @@
+[submodule "Carthage/Checkouts/realm-cocoa"]
+	path = Carthage/Checkouts/realm-cocoa
+	url = https://github.com/realm/realm-cocoa.git
+[submodule "Carthage/Checkouts/promises"]
+	path = Carthage/Checkouts/promises
+	url = https://github.com/google/promises.git
+[submodule "Carthage/Checkouts/Alamofire"]
+	path = Carthage/Checkouts/Alamofire
+	url = https://github.com/Alamofire/Alamofire.git

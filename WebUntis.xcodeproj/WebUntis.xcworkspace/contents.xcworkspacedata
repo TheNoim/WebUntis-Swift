@@ -1,0 +1,10 @@
+***REMOVED***
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:../Carthage/Checkouts/Alamofire">
+   </FileRef>
+   <FileRef
+      location = "container:">
+   </FileRef>
+</Workspace>
