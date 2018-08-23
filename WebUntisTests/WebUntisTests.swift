@@ -55,6 +55,18 @@ class WebUntisTests: XCTestCase {
         wait(for: [expectation], timeout: 10.0)
     }
     
+    func testCredentialsFail() {
+        let expectation = XCTestExpectation(description: "Login to WebUntis should fail");
+        WebUntis.default.setCredentials(server: self.server, username: self.username + "_this_should_fail", password: self.password, school: self.school).then{ result in
+            XCTAssertFalse(true);
+            expectation.fulfill();
+        }.catch { error in
+            XCTAssert(error.isWebUntisError(type: WebUntisError.UNAUTHORIZED))
+            expectation.fulfill();
+        }
+        wait(for: [expectation], timeout: 10.0)
+    }
+    
     func testStatus() {
         let expectation = XCTestExpectation(description: "Fetch getStatusData");
         WebUntis.default.setCredentials(server: self.server, username: self.username, password: self.password, school: self.school).then{ result in
