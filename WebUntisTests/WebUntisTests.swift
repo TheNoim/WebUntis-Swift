@@ -40,6 +40,13 @@ class WebUntisTests: XCTestCase {
         super.tearDown()
     }
     
+    func testErrorShouldWork() {
+        let unauthorizedError = getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil) as Error;
+        XCTAssertNotNil(unauthorizedError);
+        XCTAssertFalse(unauthorizedError.isWebUntisError(type: WebUntisError.UNKNOWN));
+        XCTAssert(unauthorizedError.isWebUntisError(type: WebUntisError.UNAUTHORIZED));
+    }
+    
     func testSetCredentials() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
@@ -58,10 +65,10 @@ class WebUntisTests: XCTestCase {
     func testCredentialsFail() {
         let expectation = XCTestExpectation(description: "Login to WebUntis should fail");
         WebUntis.default.setCredentials(server: self.server, username: self.username + "_this_should_fail", password: self.password, school: self.school).then{ result in
-            XCTAssertFalse(true);
+            XCTAssertFalse(true, "Then should not be called. This login request should fail.");
             expectation.fulfill();
         }.catch { error in
-            XCTAssert(error.isWebUntisError(type: WebUntisError.UNAUTHORIZED))
+            XCTAssert(error.isWebUntisError(type: WebUntisError.UNAUTHORIZED), "The error should be UNAUTHORIZED")
             expectation.fulfill();
         }
         wait(for: [expectation], timeout: 10.0)
