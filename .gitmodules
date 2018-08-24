@@ -7,3 +7,6 @@
 [submodule "Carthage/Checkouts/Alamofire"]
 	path = Carthage/Checkouts/Alamofire
 	url = https://github.com/Alamofire/Alamofire.git
+[submodule "Carthage/Checkouts/CryptoSwift"]
+	path = Carthage/Checkouts/CryptoSwift
+	url = https://github.com/krzyzanowskim/CryptoSwift.git

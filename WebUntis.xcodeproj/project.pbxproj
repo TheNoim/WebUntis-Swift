@@ -21,6 +21,8 @@
 		FB2308A4212EB8490024406A /* WebUntisMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2308A3212EB8490024406A /* WebUntisMethods.swift */; };
 		FB2308A6212EBADA0024406A /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2308A5212EBADA0024406A /* credentials.plist */; };
 		FB2308A7212EBC4E0024406A /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2308A5212EBADA0024406A /* credentials.plist */; };
+		FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2308A8212EC8380024406A /* WebUntisValidUser.swift */; };
+		FB2308AB212ECBB00024406A /* CryptoSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB2308AA212ECBB00024406A /* CryptoSwift.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +63,8 @@
 		FB23089D212EA0780024406A /* WebUntisErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisErrors.swift; sourceTree = "<group>"; };
 		FB2308A3212EB8490024406A /* WebUntisMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisMethods.swift; sourceTree = "<group>"; };
 		FB2308A5212EBADA0024406A /* credentials.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = credentials.plist; sourceTree = "<group>"; };
+		FB2308A8212EC8380024406A /* WebUntisValidUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisValidUser.swift; sourceTree = "<group>"; };
+		FB2308AA212ECBB00024406A /* CryptoSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = CryptoSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB2308AB212ECBB00024406A /* CryptoSwift.framework in Frameworks */,
 				FB0F03D7212DE95C00CA5462 /* Alamofire.framework in Frameworks */,
 				FB0F03D9212DE95C00CA5462 /* FBLPromises.framework in Frameworks */,
 				FB0F03DB212DE95C00CA5462 /* Promises.framework in Frameworks */,
@@ -115,6 +120,7 @@
 				FB0F03E2212DE9BC00CA5462 /* WebUntis.swift */,
 				FB23089D212EA0780024406A /* WebUntisErrors.swift */,
 				FB2308A3212EB8490024406A /* WebUntisMethods.swift */,
+				FB2308A8212EC8380024406A /* WebUntisValidUser.swift */,
 			);
 			path = WebUntis;
 			sourceTree = "<group>";
@@ -132,6 +138,7 @@
 		FB0F03BF212DE92A00CA5462 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				FB2308AA212ECBB00024406A /* CryptoSwift.framework */,
 				FB0F03D6212DE95C00CA5462 /* Alamofire.framework */,
 				FB0F03D8212DE95C00CA5462 /* FBLPromises.framework */,
 				FB0F03DA212DE95C00CA5462 /* Promises.framework */,
@@ -266,6 +273,7 @@
 			files = (
 				FB2308A4212EB8490024406A /* WebUntisMethods.swift in Sources */,
 				FB0F03E3212DE9BC00CA5462 /* WebUntis.swift in Sources */,
+				FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */,
 				FB23089E212EA0780024406A /* WebUntisErrors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

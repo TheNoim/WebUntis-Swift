@@ -15,5 +15,3 @@ FOUNDATION_EXPORT double WebUntisVersionNumber;
 FOUNDATION_EXPORT const unsigned char WebUntisVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <WebUntis/PublicHeader.h>
-
-

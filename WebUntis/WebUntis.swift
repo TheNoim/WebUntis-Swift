@@ -10,6 +10,7 @@ import Foundation
 import RealmSwift
 import Alamofire
 import Promises
+import CryptoSwift
 
 class WebUntis: RequestAdapter, RequestRetrier {
     
@@ -36,26 +37,45 @@ class WebUntis: RequestAdapter, RequestRetrier {
     
     private let lock = NSLock();
     
-    init() {
+    private var realmPath = Realm.Configuration().fileURL;
+    
+    init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
         sessionManager.adapter = self;
         sessionManager.retrier = self;
         var config = Realm.Configuration();
-        config.fileURL = config.fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm");
+        config.fileURL = url;
+        self.realmPath = url;
         Realm.Configuration.defaultConfiguration = config;
-        self.realm = try! Realm();
+        self.realm = try? Realm();
     }
     
     public func setCredentials(server: String, username: String, password: String, school: String) -> Promise<Bool> {
-        return loginWith(server: server, username: username, password: password, school: school).then { (sessionId) -> Bool in
-            self.server = server;
-            self.username = username;
-            self.password = password;
-            self.school = school;
-            self.currentSession = sessionId;
-            self.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
-            self.credentialsSetAndValid = true;
-            return true;
-        }
+        return Promise<Bool> { fullfill, reject in
+            if !self.isAccountConsideredValid(server: server, username: username, password: password, school: school) {
+                self.loginWith(server: server, username: username, password: password, school: school).then { (sessionId) -> Bool in
+                    self.server = server;
+                    self.username = username;
+                    self.password = password;
+                    self.school = school;
+                    self.currentSession = sessionId;
+                    self.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
+                    self.credentialsSetAndValid = true;
+                    return true;
+                }.then {_ in
+                    self.markAccountAsValid(server: server, username: username, password: password, school: school);
+                    fullfill(true);
+                }.catch { error in
+                    reject(error);
+                }
+            } else {
+                self.server = server;
+                self.username = username;
+                self.password = password;
+                self.school = school;
+                self.credentialsSetAndValid = true;
+                fullfill(true);
+            }
+        };
     }
     
     private func login() -> Promise<String> {
@@ -120,7 +140,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
                 "jsonrpc": "2.0",
                 "params": params
             ];
-            self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).responseJSONRPC { response in
+            self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPC { response in
                 switch response.result {
                 case .success:
                     guard let result = response.result.value else {
@@ -160,29 +180,71 @@ class WebUntis: RequestAdapter, RequestRetrier {
     
     func should(_ manager: SessionManager, retry request: Request, with error: Error, completion: @escaping RequestRetryCompletion) {
         self.lock.lock() ; defer { self.lock.unlock() };
+        print("I am here")
         if error.isWebUntisError(type: .UNAUTHORIZED) && self.credentialsSet() {
+            print("I am here now")
             requestsToRetry.append(completion);
             self.login().then { [weak self] sessionId in
                 guard let strongSelf = self else { return }
+                strongSelf.currentSession = sessionId;
+                strongSelf.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
                 strongSelf.lock.lock() ; defer { strongSelf.lock.unlock() }
                 strongSelf.requestsToRetry.forEach { $0(true, 0.0) }
                 strongSelf.requestsToRetry.removeAll();
             }.catch { [weak self] _ in
                 guard let strongSelf = self else { return }
+                strongSelf.invalidateAccount(server: strongSelf.server, username: strongSelf.username, password: strongSelf.password, school: strongSelf.school)
                 strongSelf.lock.lock() ; defer { strongSelf.lock.unlock() }
                 strongSelf.requestsToRetry.forEach { $0(false, 0.0) }
                 strongSelf.requestsToRetry.removeAll();
             };
         } else {
+            print("I am here now or?")
             completion(false, 0.0);
         }
     }
     
+    public func isAccountConsideredValid(server: String, username: String, password: String, school: String) -> Bool {
+        let hash = accountHash(server: server, username: username, password: password, school: school);
+        let validAccount = self.realm?.object(ofType: ValidAccount.self, forPrimaryKey: hash);
+        return validAccount != nil;
+    }
+    
+    public func markAccountAsValid(server: String, username: String, password: String, school: String) {
+        let hash = accountHash(server: server, username: username, password: password, school: school);
+        let validAccount = ValidAccount();
+        validAccount.accountHash = hash;
+        validAccount.school = school;
+        validAccount.server = server;
+        validAccount.username = username;
+        try? realm?.write {
+            realm?.add(validAccount);
+        }
+    }
+    
+    public func invalidateAccount(server: String, username: String, password: String, school: String) {
+        let hash = accountHash(server: server, username: username, password: password, school: school);
+        guard let validAccount = self.realm?.object(ofType: ValidAccount.self, forPrimaryKey: hash) else {
+            return;
+        }
+        try? realm?.write {
+            realm?.delete(validAccount);
+        }
+    }
+    
+    private func accountHash(server: String, username: String, password: String, school: String) -> String {
+        var base: String = server + username + password + school;
+        for _ in 0..<64 {
+            base = base.sha512();
+        }
+        return base;
+    }
 }
 
 extension DataRequest {
-    static func jsonRPCResponseSerializer() -> DataResponseSerializer<[String: Any]> {
-        return DataResponseSerializer { request, response, data, error in
+    
+    public func validateWebUntisResponse() -> Self {
+        return validate { request,response,data in
             let json = try? JSONSerialization.jsonObject(with: data!, options: []);
             guard let root = json as? [String: Any] else {
                 return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
@@ -195,9 +257,23 @@ extension DataRequest {
                 switch (code) {
                 case -8520:
                     return .failure(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil));
+                case -8509:
+                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_PERMISSION_DENIED, userInfo: nil));
+                case -32601:
+                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_METHOD_NOT_FOUND, userInfo: nil));
                 default:
                     return .failure(getWebUntisErrorBy(type: .WEBUNTIS_UNKNOWN_ERROR_CODE, userInfo: nil));
                 }
+            }
+            return .success;
+        }
+    }
+    
+    static func jsonRPCResponseSerializer() -> DataResponseSerializer<[String: Any]> {
+        return DataResponseSerializer { request, response, data, error in
+            let json = try? JSONSerialization.jsonObject(with: data!, options: []);
+            guard let root = json as? [String: Any] else {
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
             }
             if let result = root["result"] as? [String: Any] {
                 return .success(result);

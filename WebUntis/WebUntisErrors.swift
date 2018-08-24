@@ -15,6 +15,8 @@ enum WebUntisError: Int {
     case WEBUNTIS_SERVER_ERROR = 501;
     case WEBUNTIS_SERVER_RESPONSE_MISSING_RESULT = 502;
     case WEBUNTIS_UNKNOWN_ERROR_CODE = 503;
+    case WEBUNTIS_PERMISSION_DENIED = 403;
+    case WEBUNTIS_METHOD_NOT_FOUND;
 }
 
 func getWebUntisErrorBy(type: WebUntisError, userInfo: [String: Any]?) -> NSError {
