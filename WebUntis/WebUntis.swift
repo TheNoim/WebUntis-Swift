@@ -39,6 +39,8 @@ class WebUntis: RequestAdapter, RequestRetrier {
     
     private var realmPath = Realm.Configuration().fileURL;
     
+    public var webuntisDateFormatter = DateFormatter()
+    
     init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
         sessionManager.adapter = self;
         sessionManager.retrier = self;
@@ -47,6 +49,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
         self.realmPath = url;
         Realm.Configuration.defaultConfiguration = config;
         self.realm = try? Realm();
+        webuntisDateFormatter.dateFormat = "YYYYMMdd";
     }
     
     public func setCredentials(server: String, username: String, password: String, school: String) -> Promise<Bool> {
@@ -132,6 +135,51 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
+    public func getTimetable(for type: Int = 5, with id: Int, between start: Date, and end: Date) -> Promise<[Lesson]> {
+        return Promise<[Lesson]> { fulfill, reject in
+            if let lessonsAsRealm = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end) {
+                fulfill(lessonStruct(by: lessonsAsRealm))
+                self.refreshTimetable(for: type, with: id, between: start, and: end);
+            } else {
+                self.refreshTimetable(for: type, with: id, between: start, and: end, forceRefresh: true).then { lessons in
+                    fulfill(lessons);
+                }.catch { error in
+                    reject(error);
+                };
+            }
+        };
+    }
+    
+    var lastTimetableRefresh: Date = Calendar.current.date(byAdding: .year, value: -1, to: Date())!;
+    
+    @discardableResult
+    public func refreshTimetable(for type: Int = 5, with id: Int, between start: Date, and end: Date, forceRefresh: Bool = false) -> Promise<[Lesson]> {
+        return Promise<[Lesson]> { fulfill, reject in
+            if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: -2, to: Date())! {
+                self.doJSONRPC(method: .TIMETABLE, params: ["options": [
+                    "element": [
+                        "id": id,
+                        "type": type
+                    ],
+                    "startDate": self.webuntisDateFormatter.string(from: start),
+                    "endDate": self.webuntisDateFormatter.string(from: end),
+                    "showInfo": true,
+                    "showSubstText": true,
+                    "showLsText": true,
+                    "showStudentgroup": true,
+                    "klasseFields": ["id", "name", "longname"],
+                    "roomFields": ["id", "name", "longname"],
+                    "subjectFields": ["id", "name", "longname"],
+                    "teacherFields": ["id", "name", "longname"],
+                ]]).then { result in
+                    
+                }
+            } else {
+                fulfill([]);
+            }
+        };
+    }
+    
     public func doJSONRPC(method: WebUntisMethod, params: [String: Any] = [:]) -> Promise<[String: Any]> {
         return Promise<[String: Any]> { fulfill, reject in
             let JSONRPCBody: Parameters = [
@@ -153,6 +201,31 @@ class WebUntis: RequestAdapter, RequestRetrier {
                     reject(error);
                 }
             };
+        };
+    }
+    
+    public func doJSONRPCArray(method: WebUntisMethod, params: [String: Any] = [:]) -> Promise<[Any]> {
+        return Promise<[Any]> { fulfill, reject in
+            let JSONRPCBody: Parameters = [
+                "id": self.identity,
+                "method": method.rawValue,
+                "jsonrpc": "2.0",
+                "params": params
+            ];
+            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPCArray { response in
+                switch response.result {
+                case .success:
+                    guard let result = response.result.value else {
+                        reject(getWebUntisErrorBy(type: .UNKNOWN, userInfo: nil));
+                        return;
+                    }
+                    fulfill(result);
+                    break;
+                case .failure(let error):
+                    reject(error);
+                }
+            };
+            debugPrint(r)
         };
     }
     
@@ -180,9 +253,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
     
     func should(_ manager: SessionManager, retry request: Request, with error: Error, completion: @escaping RequestRetryCompletion) {
         self.lock.lock() ; defer { self.lock.unlock() };
-        print("I am here")
         if error.isWebUntisError(type: .UNAUTHORIZED) && self.credentialsSet() {
-            print("I am here now")
             requestsToRetry.append(completion);
             self.login().then { [weak self] sessionId in
                 guard let strongSelf = self else { return }
@@ -199,7 +270,6 @@ class WebUntis: RequestAdapter, RequestRetrier {
                 strongSelf.requestsToRetry.removeAll();
             };
         } else {
-            print("I am here now or?")
             completion(false, 0.0);
         }
     }
@@ -283,11 +353,34 @@ extension DataRequest {
         };
     }
     
+    static func jsonRPCResponseSerializerArray() -> DataResponseSerializer<[Any]> {
+        return DataResponseSerializer { request, response, data, error in
+            let json = try? JSONSerialization.jsonObject(with: data!, options: []);
+            guard let root = json as? [String: Any] else {
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
+            }
+            if let result = root["result"] as? [Any] {
+                return .success(result);
+            } else {
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_RESPONSE_MISSING_RESULT, userInfo: nil));
+            }
+        };
+    }
+    
     @discardableResult
     func responseJSONRPC(queue: DispatchQueue? = nil, options: JSONSerialization.ReadingOptions = .allowFragments, completionHandler: @escaping (DataResponse<[String: Any]>) -> Void) -> Self {
         return response(
             queue: queue,
             responseSerializer: DataRequest.jsonRPCResponseSerializer(),
+            completionHandler: completionHandler
+        )
+    }
+    
+    @discardableResult
+    func responseJSONRPCArray(queue: DispatchQueue? = nil, options: JSONSerialization.ReadingOptions = .allowFragments, completionHandler: @escaping (DataResponse<[Any]>) -> Void) -> Self {
+        return response(
+            queue: queue,
+            responseSerializer: DataRequest.jsonRPCResponseSerializerArray(),
             completionHandler: completionHandler
         )
     }

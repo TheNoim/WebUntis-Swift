@@ -23,6 +23,9 @@
 		FB2308A7212EBC4E0024406A /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2308A5212EBADA0024406A /* credentials.plist */; };
 		FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2308A8212EC8380024406A /* WebUntisValidUser.swift */; };
 		FB2308AB212ECBB00024406A /* CryptoSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB2308AA212ECBB00024406A /* CryptoSwift.framework */; };
+		FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158152130613900A45A77 /* WebUntisCacheModels.swift */; };
+		FB41581821307BB000A45A77 /* RealmStructConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB41581721307BB000A45A77 /* RealmStructConverter.swift */; };
+		FB41581A2130896B00A45A77 /* WebUntisDecodeable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +68,9 @@
 		FB2308A5212EBADA0024406A /* credentials.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = credentials.plist; sourceTree = "<group>"; };
 		FB2308A8212EC8380024406A /* WebUntisValidUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisValidUser.swift; sourceTree = "<group>"; };
 		FB2308AA212ECBB00024406A /* CryptoSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = CryptoSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB4158152130613900A45A77 /* WebUntisCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisCacheModels.swift; sourceTree = "<group>"; };
+		FB41581721307BB000A45A77 /* RealmStructConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealmStructConverter.swift; sourceTree = "<group>"; };
+		FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisDecodeable.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +127,9 @@
 				FB23089D212EA0780024406A /* WebUntisErrors.swift */,
 				FB2308A3212EB8490024406A /* WebUntisMethods.swift */,
 				FB2308A8212EC8380024406A /* WebUntisValidUser.swift */,
+				FB4158152130613900A45A77 /* WebUntisCacheModels.swift */,
+				FB41581721307BB000A45A77 /* RealmStructConverter.swift */,
+				FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */,
 			);
 			path = WebUntis;
 			sourceTree = "<group>";
@@ -273,7 +282,10 @@
 			files = (
 				FB2308A4212EB8490024406A /* WebUntisMethods.swift in Sources */,
 				FB0F03E3212DE9BC00CA5462 /* WebUntis.swift in Sources */,
+				FB41581A2130896B00A45A77 /* WebUntisDecodeable.swift in Sources */,
 				FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */,
+				FB41581821307BB000A45A77 /* RealmStructConverter.swift in Sources */,
+				FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */,
 				FB23089E212EA0780024406A /* WebUntisErrors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

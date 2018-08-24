@@ -99,6 +99,47 @@ class WebUntisTests: XCTestCase {
         wait(for: [expectation], timeout: 10.0)
     }
     
+    func testRPCArray() {
+        let expectation = XCTestExpectation(description: "Fetch getStatusData");
+        WebUntis.default.setCredentials(server: self.server, username: self.username, password: self.password, school: self.school).then{ result in
+            if result {
+                let options = [
+                    "options": [
+                        "element": [:],
+                        "startDate": WebUntis.default.webuntisDateFormatter.string(from: Date()),
+                        "endDate": WebUntis.default.webuntisDateFormatter.string(from: Date()),
+                        "showInfo": true,
+                        "showSubstText": true,
+                        "showLsText": true,
+                        "showStudentgroup": true,
+                        "klasseFields": ["id", "name", "longname"],
+                        "roomFields": ["id", "name", "longname"],
+                        "subjectFields": ["id", "name", "longname"],
+                        "teacherFields": ["id", "name", "longname"],
+                    ]
+                ];
+                debugPrint(options)
+                WebUntis.default.doJSONRPCArray(method: .TIMETABLE, params: options).then { response in
+                    print(response);
+                    XCTAssertNotNil(response);
+                    expectation.fulfill();
+                }.catch { error in
+                    print(error);
+                    XCTAssertTrue(false);
+                    expectation.fulfill();
+                }
+            } else {
+                XCTAssert(result);
+                expectation.fulfill();
+            }
+            }.catch { error in
+                print(error);
+                XCTAssertTrue(false);
+                expectation.fulfill();
+        }
+        wait(for: [expectation], timeout: 10.0)
+    }
+    
     func testPerformanceExample() {
         // This is an example of a performance test case.
         self.measure {
