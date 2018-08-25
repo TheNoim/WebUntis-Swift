@@ -19,6 +19,7 @@ enum WebUntisError: Int {
     case WEBUNTIS_INVALID_PERSON_ID = 505;
     case WEBUNTIS_PERMISSION_DENIED = 403;
     case WEBUNTIS_METHOD_NOT_FOUND;
+    case WEBUNTIS_BACKGROUND_REFRESH_ERROR = -500;
 }
 
 func getWebUntisErrorBy(type: WebUntisError, userInfo: [String: Any]?) -> NSError {

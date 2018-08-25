@@ -19,7 +19,7 @@ func getURLSessionConfiguration() -> URLSessionConfiguration {
     return cfg;
 }
 
-class WebUntis: RequestAdapter, RequestRetrier {
+class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     static var `default` = WebUntis();
     
@@ -54,6 +54,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
     public var webuntisDateFormatter = DateFormatter()
     
     init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
+        super.init();
         sessionManager.adapter = self;
         sessionManager.retrier = self;
         var config = Realm.Configuration();
@@ -278,17 +279,13 @@ class WebUntis: RequestAdapter, RequestRetrier {
                 ]]).then { result in
                     var lessons: [Lesson] = [];
                     self.getTimegridP().then { timegridUnits in
-                        print("I am here, right? RIGHT? RIGHT?!")
                         for lessonU in result {
                             if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: self.type, userId: self.id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id)) {
                                 lessons.append(lesson);
                             }
                         }
-                        print("WHAT IS HAPPENING?! PLEASE TELL ME!")
                         lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
-                        print("BUT AT LEAST THIS SHOULD WORK?!")
                         try? self.realm?.write {
-                            print("I WILL FIND YOU BUG!")
                             if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
                                 let oldData = self.getTimetableFromCache(between: start, and: end);
                                 if oldData != nil {
@@ -301,17 +298,16 @@ class WebUntis: RequestAdapter, RequestRetrier {
                                     self.realm?.delete(oldData!);
                                 }
                             }
-                            print("Hello loop")
                             for lesson in lessons {
-                                print("Add lesson")
                                 self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
-                                print("Added lesson")
                             }
                         }
                         self.lastTimetableRefresh = Date()
+                        self.trigger(eventName: "refresh");
                         fulfill(lessons);
                     }
                 }.catch { error in
+                    self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
                     fulfill([]);
                 }
             } else {
