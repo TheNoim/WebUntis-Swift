@@ -12,6 +12,13 @@ import Alamofire
 import Promises
 import CryptoSwift
 
+func getURLSessionConfiguration() -> URLSessionConfiguration {
+    let cfg = URLSessionConfiguration.ephemeral;
+    cfg.timeoutIntervalForRequest = 5;
+    cfg.timeoutIntervalForResource = 5;
+    return cfg;
+}
+
 class WebUntis: RequestAdapter, RequestRetrier {
     
     static var `default` = WebUntis();
@@ -36,7 +43,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
     private var currentSession = "";
     private var sessionExpiresAt = Date();
     
-    private var sessionManager = Alamofire.SessionManager(configuration: URLSessionConfiguration.ephemeral);
+    private var sessionManager = Alamofire.SessionManager(configuration: getURLSessionConfiguration());
     
     private let lock = NSLock();
     
@@ -138,16 +145,25 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
+    private func getTimetableFromCache(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
+        return self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end);
+    }
+    
     public func getTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
-            if let lessonsAsRealm = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end), !forceRefresh {
+            if let lessonsAsRealm = self.getTimetableFromCache(for: type, with: id, between: start, and: end), !forceRefresh {
                 fulfill(lessonStruct(by: lessonsAsRealm))
                 self.refreshTimetable(for: type, with: id, between: start, and: end);
             } else {
                 self.refreshTimetable(for: type, with: id, between: start, and: end, forceRefresh: true).then { lessons in
                     fulfill(lessons);
                 }.catch { error in
-                    reject(error);
+                    let e = error as NSError;
+                    if e.code == NSURLErrorTimedOut, let lessonsAsRealm = self.getTimetableFromCache(for: type, with: id, between: start, and: end), !forceRefresh {
+                        fulfill(lessonStruct(by: lessonsAsRealm))
+                    } else {
+                        reject(error);
+                    }
                 };
             }
         };
