@@ -60,7 +60,11 @@ class WebUntis: RequestAdapter, RequestRetrier {
         config.fileURL = url;
         self.realmPath = url;
         Realm.Configuration.defaultConfiguration = config;
-        self.realm = try? Realm();
+        if let _ = NSClassFromString("XCTest") {
+            self.realm = try! Realm(configuration: Realm.Configuration(fileURL: nil, inMemoryIdentifier: "test", encryptionKey: nil, readOnly: false, schemaVersion: 0, migrationBlock: nil, objectTypes: nil))
+        } else {
+            self.realm = try! Realm();
+        }
         webuntisDateFormatter.dateFormat = "YYYYMMdd";
     }
     
@@ -148,15 +152,18 @@ class WebUntis: RequestAdapter, RequestRetrier {
     }
     
     private func getTimetableFromCache(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
-        return self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end);
+        return dump(self.realm?.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end));
     }
     
     public func getTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if let lessonsAsRealm = self.getTimetableFromCache(for: type, with: id, between: start, and: end), !forceRefresh {
                 fulfill(lessonStruct(by: lessonsAsRealm))
-                self.refreshTimetable(for: type, with: id, between: start, and: end);
+                self.refreshTimetable(for: type, with: id, between: start, and: end).then { _ in
+                    print("Finish refresh!")
+                };
             } else {
+                print("Hello my friend")
                 self.refreshTimetable(for: type, with: id, between: start, and: end, forceRefresh: true).then { lessons in
                     fulfill(lessons);
                 }.catch { error in
@@ -261,15 +268,19 @@ class WebUntis: RequestAdapter, RequestRetrier {
                 ]]).then { result in
                     var lessons: [Lesson] = [];
                     self.getTimegridP(for: type, with: id).then { timegridUnits in
+                        print("I am here, right? RIGHT? RIGHT?!")
                         for lessonU in result {
                             if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: type, userId: id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id)) {
                                 lessons.append(lesson);
                             }
                         }
+                        print("WHAT IS HAPPENING?! PLEASE TELL ME!")
                         lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
+                        print("BUT AT LEAST THIS SHOULD WORK?!")
                         try? self.realm?.write {
+                            print("I WILL FIND YOU BUG!")
                             if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
-                                let oldData = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, startDate, endDate);
+                                let oldData = self.getTimetableFromCache(for: type, with: id, between: start, and: end);
                                 if oldData != nil {
                                     for oldLesson in (oldData?.enumerated())! {
                                         self.realm?.delete(oldLesson.element.klassen);
@@ -280,8 +291,11 @@ class WebUntis: RequestAdapter, RequestRetrier {
                                     self.realm?.delete(oldData!);
                                 }
                             }
+                            print("Hello loop")
                             for lesson in lessons {
+                                print("Add lesson")
                                 self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
+                                print("Added lesson")
                             }
                         }
                         self.lastTimetableRefresh = Date()
@@ -436,6 +450,15 @@ class WebUntis: RequestAdapter, RequestRetrier {
         let formatter = DateFormatter()
         formatter.dateFormat = "YYYYMMdd HHmm";
         return formatter;
+    }
+    
+    // Src: https://stackoverflow.com/questions/13324633/nsdate-beginning-of-day-and-end-of-day
+    public static func startAndEnd(of date : Date) -> (start : Date, end : Date) {
+        var startDate = Date()
+        var interval : TimeInterval = 0.0
+        let _ = Calendar.current.dateInterval(of: .day, start: &startDate, interval: &interval, for: date)
+        let endDate = startDate.addingTimeInterval(interval-1)
+        return (start : startDate, end : endDate)
     }
 }
 

@@ -103,14 +103,16 @@ class WebUntisTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Fetch getStatusData");
         WebUntis.default.setCredentials(server: self.server, username: self.username, password: self.password, school: self.school).then{ result in
             if result {
-                let start = Date.today().next(.monday);
-                let end = start;
+                let startAndEndDay = Date.today().next(.monday);
+                let (start, end) = WebUntis.startAndEnd(of: startAndEndDay)
                 WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: true).then { result in
                     print("Result 1: \(result)");
                     WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: false).then { result2 in
                         print("Result 2: \(result2)");
                         XCTAssertNotNil(result2);
-                        expectation.fulfill();
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            expectation.fulfill();
+                        }
                     }.catch { error in
                         print(error);
                         XCTAssertTrue(false);
@@ -232,6 +234,7 @@ extension Date {
     }
     
 }
+
 
 // MARK: Helper methods
 extension Date {

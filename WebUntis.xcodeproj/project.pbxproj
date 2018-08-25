@@ -19,8 +19,6 @@
 		FB0F03E3212DE9BC00CA5462 /* WebUntis.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0F03E2212DE9BC00CA5462 /* WebUntis.swift */; };
 		FB23089E212EA0780024406A /* WebUntisErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB23089D212EA0780024406A /* WebUntisErrors.swift */; };
 		FB2308A4212EB8490024406A /* WebUntisMethods.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2308A3212EB8490024406A /* WebUntisMethods.swift */; };
-		FB2308A6212EBADA0024406A /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2308A5212EBADA0024406A /* credentials.plist */; };
-		FB2308A7212EBC4E0024406A /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB2308A5212EBADA0024406A /* credentials.plist */; };
 		FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2308A8212EC8380024406A /* WebUntisValidUser.swift */; };
 		FB2308AB212ECBB00024406A /* CryptoSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB2308AA212ECBB00024406A /* CryptoSwift.framework */; };
 		FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158152130613900A45A77 /* WebUntisCacheModels.swift */; };
@@ -28,6 +26,7 @@
 		FB41581A2130896B00A45A77 /* WebUntisDecodeable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */; };
 		FBC3A8302131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A82F2131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift */; };
 		FBC3A8322131AC9F00EB7ADC /* DayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A8312131AC9F00EB7ADC /* DayOrder.swift */; };
+		FBC3A8342131BC9100EB7ADC /* credentials.plist in Resources */ = {isa = PBXBuildFile; fileRef = FBC3A8332131BC9100EB7ADC /* credentials.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,7 +66,6 @@
 		FB0F03E2212DE9BC00CA5462 /* WebUntis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntis.swift; sourceTree = "<group>"; };
 		FB23089D212EA0780024406A /* WebUntisErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisErrors.swift; sourceTree = "<group>"; };
 		FB2308A3212EB8490024406A /* WebUntisMethods.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisMethods.swift; sourceTree = "<group>"; };
-		FB2308A5212EBADA0024406A /* credentials.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = credentials.plist; sourceTree = "<group>"; };
 		FB2308A8212EC8380024406A /* WebUntisValidUser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisValidUser.swift; sourceTree = "<group>"; };
 		FB2308AA212ECBB00024406A /* CryptoSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = CryptoSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FB4158152130613900A45A77 /* WebUntisCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisCacheModels.swift; sourceTree = "<group>"; };
@@ -75,6 +73,7 @@
 		FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisDecodeable.swift; sourceTree = "<group>"; };
 		FBC3A82F2131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisRefreshedTimeModel.swift; sourceTree = "<group>"; };
 		FBC3A8312131AC9F00EB7ADC /* DayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOrder.swift; sourceTree = "<group>"; };
+		FBC3A8332131BC9100EB7ADC /* credentials.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = credentials.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,9 +142,9 @@
 		FB0F03B0212DE5EA00CA5462 /* WebUntisTests */ = {
 			isa = PBXGroup;
 			children = (
-				FB2308A5212EBADA0024406A /* credentials.plist */,
 				FB0F03B1212DE5EA00CA5462 /* WebUntisTests.swift */,
 				FB0F03B3212DE5EA00CA5462 /* Info.plist */,
+				FBC3A8332131BC9100EB7ADC /* credentials.plist */,
 			);
 			path = WebUntisTests;
 			sourceTree = "<group>";
@@ -267,7 +266,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FB2308A6212EBADA0024406A /* credentials.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,7 +273,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FB2308A7212EBC4E0024406A /* credentials.plist in Resources */,
+				FBC3A8342131BC9100EB7ADC /* credentials.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
