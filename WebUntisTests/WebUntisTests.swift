@@ -105,9 +105,9 @@ class WebUntisTests: XCTestCase {
             if result {
                 let startAndEndDay = Date.today().next(.monday);
                 let (start, end) = WebUntis.startAndEnd(of: startAndEndDay)
-                WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: true).then { result in
+                WebUntis.default.getTimetable(between: start, and: end, forceRefresh: true).then { result in
                     print("Result 1: \(result)");
-                    WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: false).then { result2 in
+                    WebUntis.default.getTimetable(between: start, and: end, forceRefresh: false).then { result2 in
                         print("Result 2: \(result2)");
                         XCTAssertNotNil(result2);
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {

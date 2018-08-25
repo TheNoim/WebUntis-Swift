@@ -37,8 +37,8 @@ class WebUntis: RequestAdapter, RequestRetrier {
     private var password = "";
     private var school = "";
     
-    public var userType = 5;
-    public var userId = 0;
+    public var type = 5;
+    public var id = 0;
     
     public var refreshAfter = 8; // minutes
     
@@ -71,12 +71,14 @@ class WebUntis: RequestAdapter, RequestRetrier {
     public func setCredentials(server: String, username: String, password: String, school: String) -> Promise<Bool> {
         return Promise<Bool> { fullfill, reject in
             if !self.isAccountConsideredValid(server: server, username: username, password: password, school: school) {
-                self.loginWith(server: server, username: username, password: password, school: school).then { (sessionId) -> Bool in
+                self.loginWith(server: server, username: username, password: password, school: school).then { (sessionId, type, id) -> Bool in
                     self.server = server;
                     self.username = username;
                     self.password = password;
                     self.school = school;
                     self.currentSession = sessionId;
+                    self.type = type;
+                    self.id = id;
                     self.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
                     self.credentialsSetAndValid = true;
                     return true;
@@ -97,14 +99,14 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
-    private func login() -> Promise<String> {
+    private func login() -> Promise<(sessionId: String, type: Int, id: Int)> {
         return Promise { fullfill, reject in
             if (!self.credentialsSet()) {
                 reject(getWebUntisErrorBy(type: .CREDENTIALS_NOT_SET, userInfo: nil));
                 return;
             }
-            self.loginWith(server: self.server, username: self.username, password: self.password, school: self.school).then { sessionId in
-                fullfill(sessionId);
+            self.loginWith(server: self.server, username: self.username, password: self.password, school: self.school).then { (sessionId, type, id) in
+                fullfill((sessionId : sessionId, type : type, id : id));
             }.catch { error in
                 reject(error);
             };
@@ -112,8 +114,8 @@ class WebUntis: RequestAdapter, RequestRetrier {
         
     }
     
-    private func loginWith(server: String, username: String, password: String, school: String) -> Promise<String> {
-        return Promise<String> { fulfill, reject in
+    private func loginWith(server: String, username: String, password: String, school: String) -> Promise<(sessionId: String, type: Int, id: Int)> {
+        return Promise<(sessionId: String, type: Int, id: Int)> { fulfill, reject in
             // Try Login
             let JSONRPCBody: Parameters = [
                 "id": self.identity,
@@ -134,15 +136,23 @@ class WebUntis: RequestAdapter, RequestRetrier {
                         return;
                     }
                     guard let result = json["result"] as? [String: Any] else {
-                        reject(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil));
+                        reject(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: json));
                         return;
                     }
                     guard let sessionId = result["sessionId"] as? String else {
-                        reject(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil));
+                        reject(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: json));
+                        return;
+                    }
+                    guard let type = result["personType"] as? Int else {
+                        reject(getWebUntisErrorBy(type: .WEBUNTIS_INVALID_PERSON_TYPE, userInfo: json));
+                        return;
+                    }
+                    guard let id = result["personId"] as? Int else {
+                        reject(getWebUntisErrorBy(type: .WEBUNTIS_INVALID_PERSON_ID, userInfo: json));
                         return;
                     }
                     print("Login successfully: \(sessionId)");
-                    fulfill(sessionId);
+                    fulfill((sessionId : sessionId, type : type, id : id));
                     break;
                 case .failure(let error):
                     reject(getWebUntisErrorBy(type: .UNKNOWN, userInfo: ["error": error]));
@@ -151,24 +161,24 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
-    private func getTimetableFromCache(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
-        return dump(self.realm?.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end));
+    private func getTimetableFromCache(between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
+        return self.realm?.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
     }
     
-    public func getTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
+    public func getTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
-            if let lessonsAsRealm = self.getTimetableFromCache(for: type, with: id, between: start, and: end), !forceRefresh {
+            if let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end), !forceRefresh {
                 fulfill(lessonStruct(by: lessonsAsRealm))
-                self.refreshTimetable(for: type, with: id, between: start, and: end).then { _ in
+                self.refreshTimetable(between: start, and: end).then { _ in
                     print("Finish refresh!")
                 };
             } else {
                 print("Hello my friend")
-                self.refreshTimetable(for: type, with: id, between: start, and: end, forceRefresh: true).then { lessons in
+                self.refreshTimetable(between: start, and: end, forceRefresh: true).then { lessons in
                     fulfill(lessons);
                 }.catch { error in
                     let e = error as NSError;
-                    if e.code == NSURLErrorTimedOut, let lessonsAsRealm = self.getTimetableFromCache(for: type, with: id, between: start, and: end), !forceRefresh {
+                    if e.code == NSURLErrorTimedOut, let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end), !forceRefresh {
                         fulfill(lessonStruct(by: lessonsAsRealm))
                     } else {
                         reject(error);
@@ -224,7 +234,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
         }
     }
     
-    private func getTimegridP(for type: Int = 5, with id: Int) -> Promise<[TimegridEntry]> {
+    private func getTimegridP() -> Promise<[TimegridEntry]> {
         return Promise<[TimegridEntry]> { fulfill, reject in
             self.doJSONRPCArray(method: .TIMEGRID).then { timegridArray in
                 var result: [TimegridEntry] = [];
@@ -233,7 +243,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
                         let weekDay = WeekDay.untisToWeekDay(day);
                         for unitU in units {
                             if let unit = unitU as? [String: Any], let name = unit["name"] as? String, let startTime = unit["startTime"] as? Int, let endTime = unit["endTime"] as? Int {
-                                result.append(TimegridEntry(name: name, weekDay: weekDay, start: startTime, end: endTime, userType: type, userId: id, custom: false));
+                                result.append(TimegridEntry(name: name, weekDay: weekDay, start: startTime, end: endTime, userType: self.type, userId: self.id, custom: false));
                             }
                         }
                     }
@@ -247,13 +257,13 @@ class WebUntis: RequestAdapter, RequestRetrier {
     }
     
     @discardableResult
-    public func refreshTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
+    public func refreshTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: self.refreshAfter * -1, to: Date())! {
                 self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
                     "element": [
-                        "id": id,
-                        "type": type
+                        "id": self.id,
+                        "type": self.type
                     ],
                     "startDate": self.webuntisDateFormatter.string(from: start),
                     "endDate": self.webuntisDateFormatter.string(from: end),
@@ -267,10 +277,10 @@ class WebUntis: RequestAdapter, RequestRetrier {
                     "teacherFields": ["id", "name", "longname"],
                 ]]).then { result in
                     var lessons: [Lesson] = [];
-                    self.getTimegridP(for: type, with: id).then { timegridUnits in
+                    self.getTimegridP().then { timegridUnits in
                         print("I am here, right? RIGHT? RIGHT?!")
                         for lessonU in result {
-                            if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: type, userId: id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id)) {
+                            if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: self.type, userId: self.id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id)) {
                                 lessons.append(lesson);
                             }
                         }
@@ -280,7 +290,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
                         try? self.realm?.write {
                             print("I WILL FIND YOU BUG!")
                             if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
-                                let oldData = self.getTimetableFromCache(for: type, with: id, between: start, and: end);
+                                let oldData = self.getTimetableFromCache(between: start, and: end);
                                 if oldData != nil {
                                     for oldLesson in (oldData?.enumerated())! {
                                         self.realm?.delete(oldLesson.element.klassen);
@@ -385,9 +395,11 @@ class WebUntis: RequestAdapter, RequestRetrier {
         self.lock.lock() ; defer { self.lock.unlock() };
         if error.isWebUntisError(type: .UNAUTHORIZED) && self.credentialsSet() {
             requestsToRetry.append(completion);
-            self.login().then { [weak self] sessionId in
+            self.login().then { [weak self] (sessionId, type, id) in
                 guard let strongSelf = self else { return }
                 strongSelf.currentSession = sessionId;
+                strongSelf.id = id;
+                strongSelf.type = type;
                 strongSelf.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
                 strongSelf.lock.lock() ; defer { strongSelf.lock.unlock() }
                 strongSelf.requestsToRetry.forEach { $0(true, 0.0) }
