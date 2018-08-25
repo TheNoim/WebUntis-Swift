@@ -177,7 +177,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
                 ]]).then { result in
                     var lessons: [Lesson] = [];
                     for lessonU in result {
-                        if let lessonO = lessonU as? [String: Any], let lesson = Lesson(json: lessonO) {
+                        if let lessonO = lessonU as? [String: Any], let lesson = Lesson(json: lessonO, userType: type, userId: id) {
                             lessons.append(lesson);
                         }
                     }
@@ -196,9 +196,10 @@ class WebUntis: RequestAdapter, RequestRetrier {
                             }
                         }
                         for lesson in lessons {
-                            self.realm?.add(LessonRealm(value: lesson.dictionary))
+                            self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
                         }
                     }
+                    self.lastTimetableRefresh = Date()
                     fulfill(lessons);
                 }
             } else {
@@ -345,7 +346,7 @@ class WebUntis: RequestAdapter, RequestRetrier {
     
     public static func getTimeDateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "YYYYMMdd km";
+        formatter.dateFormat = "YYYYMMdd HHmm";
         return formatter;
     }
 }

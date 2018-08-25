@@ -9,7 +9,7 @@
 import Foundation
 
 extension Lesson {
-    init?(json: [String: Any]) {
+    init?(json: [String: Any], userType: Int, userId: Int) {
         let formatter = WebUntis.getDateFormatter();
         let timeformatter = WebUntis.getTimeDateFormatter();
         
@@ -46,27 +46,30 @@ extension Lesson {
         self.klassen = [];
         self.subjects = [];
         self.rooms = [];
+        
+        self.userType = userType;
+        self.userId = userId;
 
         for klasseU in klassenArray {
-            if let klasseO = klasseU as? [String: Any], let klasse = Klasse(json: klasseO) {
+            if let klasseO = klasseU as? [String: Any], let klasse = Klasse(json: klasseO, userType: userType, userId: userId) {
                 self.klassen.append(klasse);
             }
         }
         
         for roomU in roomsArray {
-            if let roomO = roomU as? [String: Any], let room = Room(json: roomO) {
+            if let roomO = roomU as? [String: Any], let room = Room(json: roomO, userType: userType, userId: userId) {
                 self.rooms.append(room);
             }
         }
         
         for teacherU in teachersArray {
-            if let teacherO = teacherU as? [String: Any], let teacher = Teacher(json: teacherO) {
+            if let teacherO = teacherU as? [String: Any], let teacher = Teacher(json: teacherO, userType: userType, userId: userId) {
                 self.teachers.append(teacher);
             }
         }
         
         for subjectU in subjectsArray {
-            if let subjectO = subjectU as? [String: Any], let subject = Subject(json: subjectO) {
+            if let subjectO = subjectU as? [String: Any], let subject = Subject(json: subjectO, userType: userType, userId: userId) {
                 self.subjects.append(subject);
             }
         }
@@ -74,45 +77,57 @@ extension Lesson {
 }
 
 extension Klasse {
-    init?(json: [String: Any]) {
+    init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
         }
         self.id = id;
         self.longname = longname;
         self.name = name;
+        
+        self.userType = userType;
+        self.userId = userId;
     }
 }
 
 extension Room {
-    init?(json: [String: Any]) {
+    init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
         }
         self.id = id;
         self.longname = longname;
         self.name = name;
+        
+        self.userType = userType;
+        self.userId = userId;
     }
 }
 
 extension Subject {
-    init?(json: [String: Any]) {
+    init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
         }
         self.id = id;
         self.longname = longname;
         self.name = name;
+        
+        self.userType = userType;
+        self.userId = userId;
     }
 }
 
 extension Teacher {
-    init?(json: [String: Any]) {
+    init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
         }
         self.id = id;
         self.longname = longname;
         self.name = name;
+        
+        self.userType = userType;
+        self.userId = userId;
     }
 }

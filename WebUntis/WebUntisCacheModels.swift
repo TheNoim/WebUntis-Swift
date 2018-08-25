@@ -85,7 +85,7 @@ class TeacherRealm: Object {
 
 // Enums
 
-enum LessonType: String, Encodable {
+enum LessonType: String {
     case Lesson = "ls"
     case OfficeHour = "oh"
     case StandBy = "sb"
@@ -93,7 +93,7 @@ enum LessonType: String, Encodable {
     case Examination = "ex"
 }
 
-enum Code: String, Encodable {
+enum Code: String {
     case Regular = ""
     case Cancelled = "cancelled"
     case Irregular = "irregular"
@@ -101,7 +101,7 @@ enum Code: String, Encodable {
 
 // Structs
 
-struct Lesson: Encodable {
+struct Lesson {
     var id: Int
     var date: Date
     var start: Date
@@ -116,37 +116,121 @@ struct Lesson: Encodable {
     var rooms: [Room]
     var subjects: [Subject]
     var teachers: [Teacher]
-}
-
-struct Klasse: Encodable {
-    var id: Int
-    var name: String
-    var longname: String
-}
-
-struct Room: Encodable {
-    var id: Int
-    var name: String
-    var longname: String
-}
-
-struct Subject: Encodable {
-    var id: Int
-    var name: String
-    var longname: String
-}
-
-struct Teacher: Encodable {
-    var id: Int
-    var name: String
-    var longname: String
-}
-
-extension Encodable {
-    subscript(key: String) -> Any? {
-        return dictionary[key]
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        var klassen: [[String: Any]] = [];
+        var rooms: [[String: Any]] = [];
+        var subjects: [[String: Any]] = [];
+        var teachers: [[String: Any]] = [];
+        for k in self.klassen {
+            klassen.append(k.dictionary);
+        }
+        for r in self.rooms {
+            rooms.append(r.dictionary);
+        }
+        for s in self.subjects {
+            subjects.append(s.dictionary)
+        }
+        for t in self.teachers {
+            teachers.append(t.dictionary)
+        }
+        
+        return [
+            "id": self.id,
+            "date": self.date,
+            "start": self.start,
+            "end": self.end,
+            "type": self.type.rawValue,
+            "code": self.code.rawValue,
+            "info": self.info,
+            "substitutionText": self.substitutionText,
+            "lessonText": self.lessonText,
+            "studentGroup": self.studentGroup,
+            "klassen": klassen,
+            "rooms": rooms,
+            "subjects": subjects,
+            "teachers": teachers,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
     }
-    var dictionary: [String: Any] {
-        return (try? JSONSerialization.jsonObject(with: JSONEncoder().encode(self))) as? [String: Any] ?? [:]
+}
+
+struct Klasse {
+    var id: Int
+    var name: String
+    var longname: String
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        return [
+            "name": self.name,
+            "longname": self.longname,
+            "id": self.id,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
+    }
+}
+
+struct Room {
+    var id: Int
+    var name: String
+    var longname: String
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        return [
+            "name": self.name,
+            "longname": self.longname,
+            "id": self.id,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
+    }
+}
+
+struct Subject {
+    var id: Int
+    var name: String
+    var longname: String
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        return [
+            "name": self.name,
+            "longname": self.longname,
+            "id": self.id,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
+    }
+}
+
+struct Teacher {
+    var id: Int
+    var name: String
+    var longname: String
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        return [
+            "name": self.name,
+            "longname": self.longname,
+            "id": self.id,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
     }
 }
