@@ -85,7 +85,7 @@ class TeacherRealm: Object {
 
 // Enums
 
-enum LessonType: String {
+enum LessonType: String, Encodable {
     case Lesson = "ls"
     case OfficeHour = "oh"
     case StandBy = "sb"
@@ -93,7 +93,7 @@ enum LessonType: String {
     case Examination = "ex"
 }
 
-enum Code: String {
+enum Code: String, Encodable {
     case Regular = ""
     case Cancelled = "cancelled"
     case Irregular = "irregular"
@@ -101,7 +101,7 @@ enum Code: String {
 
 // Structs
 
-struct Lesson {
+struct Lesson: Encodable {
     var id: Int
     var date: Date
     var start: Date
@@ -118,27 +118,35 @@ struct Lesson {
     var teachers: [Teacher]
 }
 
-struct Klasse {
+struct Klasse: Encodable {
     var id: Int
     var name: String
     var longname: String
 }
 
-struct Room {
+struct Room: Encodable {
     var id: Int
     var name: String
     var longname: String
 }
 
-struct Subject {
+struct Subject: Encodable {
     var id: Int
     var name: String
     var longname: String
 }
 
-struct Teacher {
+struct Teacher: Encodable {
     var id: Int
     var name: String
     var longname: String
 }
 
+extension Encodable {
+    subscript(key: String) -> Any? {
+        return dictionary[key]
+    }
+    var dictionary: [String: Any] {
+        return (try? JSONSerialization.jsonObject(with: JSONEncoder().encode(self))) as? [String: Any] ?? [:]
+    }
+}

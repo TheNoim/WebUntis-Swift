@@ -30,6 +30,9 @@ class WebUntis: RequestAdapter, RequestRetrier {
     private var password = "";
     private var school = "";
     
+    public var userType = 5;
+    public var userId = 0;
+    
     private var currentSession = "";
     private var sessionExpiresAt = Date();
     
@@ -135,9 +138,9 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
-    public func getTimetable(for type: Int = 5, with id: Int, between start: Date, and end: Date) -> Promise<[Lesson]> {
+    public func getTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
-            if let lessonsAsRealm = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end) {
+            if let lessonsAsRealm = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, start, end), !forceRefresh {
                 fulfill(lessonStruct(by: lessonsAsRealm))
                 self.refreshTimetable(for: type, with: id, between: start, and: end);
             } else {
@@ -153,10 +156,10 @@ class WebUntis: RequestAdapter, RequestRetrier {
     var lastTimetableRefresh: Date = Calendar.current.date(byAdding: .year, value: -1, to: Date())!;
     
     @discardableResult
-    public func refreshTimetable(for type: Int = 5, with id: Int, between start: Date, and end: Date, forceRefresh: Bool = false) -> Promise<[Lesson]> {
+    public func refreshTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: -2, to: Date())! {
-                self.doJSONRPC(method: .TIMETABLE, params: ["options": [
+                self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
                     "element": [
                         "id": id,
                         "type": type
@@ -172,7 +175,31 @@ class WebUntis: RequestAdapter, RequestRetrier {
                     "subjectFields": ["id", "name", "longname"],
                     "teacherFields": ["id", "name", "longname"],
                 ]]).then { result in
-                    
+                    var lessons: [Lesson] = [];
+                    for lessonU in result {
+                        if let lessonO = lessonU as? [String: Any], let lesson = Lesson(json: lessonO) {
+                            lessons.append(lesson);
+                        }
+                    }
+                    lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
+                    try? self.realm?.write {
+                        if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
+                            let oldData = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, startDate, endDate);
+                            if oldData != nil {
+                                for oldLesson in (oldData?.enumerated())! {
+                                    self.realm?.delete(oldLesson.element.klassen);
+                                    self.realm?.delete(oldLesson.element.rooms);
+                                    self.realm?.delete(oldLesson.element.subjects);
+                                    self.realm?.delete(oldLesson.element.teachers);
+                                }
+                                self.realm?.delete(oldData!);
+                            }
+                        }
+                        for lesson in lessons {
+                            self.realm?.add(LessonRealm(value: lesson.dictionary))
+                        }
+                    }
+                    fulfill(lessons);
                 }
             } else {
                 fulfill([]);
@@ -308,6 +335,18 @@ class WebUntis: RequestAdapter, RequestRetrier {
             base = base.sha512();
         }
         return base;
+    }
+    
+    public static func getDateFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "YYYYMMdd";
+        return formatter;
+    }
+    
+    public static func getTimeDateFormatter() -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "YYYYMMdd km";
+        return formatter;
     }
 }
 

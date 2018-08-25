@@ -99,6 +99,40 @@ class WebUntisTests: XCTestCase {
         wait(for: [expectation], timeout: 10.0)
     }
     
+    func testTimetable() {
+        let expectation = XCTestExpectation(description: "Fetch getStatusData");
+        WebUntis.default.setCredentials(server: self.server, username: self.username, password: self.password, school: self.school).then{ result in
+            if result {
+                let start = Date.today().next(.monday);
+                let end = start;
+                WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: true).then { result in
+                    print("Result 1: \(result)");
+                    WebUntis.default.getTimetable(for: 5, with: 634, between: start, and: end, forceRefresh: false).then { result2 in
+                        print("Result 2: \(result2)");
+                        XCTAssertNotNil(result2);
+                        expectation.fulfill();
+                    }.catch { error in
+                        print(error);
+                        XCTAssertTrue(false);
+                        expectation.fulfill();
+                    };
+                }.catch { error in
+                    print(error);
+                    XCTAssertTrue(false);
+                    expectation.fulfill();
+                };
+            } else {
+                XCTAssert(result);
+                expectation.fulfill();
+            }
+        }.catch { error in
+            print(error);
+            XCTAssertTrue(false);
+            expectation.fulfill();
+        }
+        wait(for: [expectation], timeout: 10.0)
+    }
+    
     func testRPCArray() {
         let expectation = XCTestExpectation(description: "Fetch getStatusData");
         WebUntis.default.setCredentials(server: self.server, username: self.username, password: self.password, school: self.school).then{ result in
@@ -147,4 +181,81 @@ class WebUntisTests: XCTestCase {
         }
     }
     
+}
+
+extension Date {
+    
+    static func today() -> Date {
+        return Date()
+    }
+    
+    func next(_ weekday: Weekday, considerToday: Bool = false) -> Date {
+        return get(.Next,
+                   weekday,
+                   considerToday: considerToday)
+    }
+    
+    func previous(_ weekday: Weekday, considerToday: Bool = false) -> Date {
+        return get(.Previous,
+                   weekday,
+                   considerToday: considerToday)
+    }
+    
+    func get(_ direction: SearchDirection,
+             _ weekDay: Weekday,
+             considerToday consider: Bool = false) -> Date {
+        
+        let dayName = weekDay.rawValue
+        
+        let weekdaysName = getWeekDaysInEnglish().map { $0.lowercased() }
+        
+        assert(weekdaysName.contains(dayName), "weekday symbol should be in form \(weekdaysName)")
+        
+        let searchWeekdayIndex = weekdaysName.index(of: dayName)! + 1
+        
+        let calendar = Calendar(identifier: .gregorian)
+        
+        if consider && calendar.component(.weekday, from: self) == searchWeekdayIndex {
+            return self
+        }
+        
+        var nextDateComponent = DateComponents()
+        nextDateComponent.weekday = searchWeekdayIndex
+        
+        
+        let date = calendar.nextDate(after: self,
+                                     matching: nextDateComponent,
+                                     matchingPolicy: .nextTime,
+                                     direction: direction.calendarSearchDirection)
+        
+        return date!
+    }
+    
+}
+
+// MARK: Helper methods
+extension Date {
+    func getWeekDaysInEnglish() -> [String] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        return calendar.weekdaySymbols
+    }
+    
+    enum Weekday: String {
+        case monday, tuesday, wednesday, thursday, friday, saturday, sunday
+    }
+    
+    enum SearchDirection {
+        case Next
+        case Previous
+        
+        var calendarSearchDirection: Calendar.SearchDirection {
+            switch self {
+            case .Next:
+                return .forward
+            case .Previous:
+                return .backward
+            }
+        }
+    }
 }
