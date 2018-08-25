@@ -25,6 +25,9 @@ class LessonRealm: Object {
     @objc dynamic var userType = 0
     @objc dynamic var userId = 0
     
+    @objc dynamic var startGrid: TimegridRealm?
+    @objc dynamic var endGrid: TimegridRealm?
+    
     let klassen = List<KlassenRealm>()
     let rooms = List<RoomRealm>()
     let subjects = List<SubjectRealm>()
@@ -32,6 +35,10 @@ class LessonRealm: Object {
     
     override static func primaryKey() -> String? {
         return "id"
+    }
+    
+    override static func indexedProperties() -> [String] {
+        return ["start", "end", "userType", "userId"]
     }
 }
 
@@ -45,6 +52,10 @@ class KlassenRealm: Object {
     override static func primaryKey() -> String? {
         return "id"
     }
+    
+    override static func indexedProperties() -> [String] {
+        return ["userType", "userId"]
+    }
 }
 
 class RoomRealm: Object {
@@ -56,6 +67,10 @@ class RoomRealm: Object {
     
     override static func primaryKey() -> String? {
         return "id"
+    }
+    
+    override static func indexedProperties() -> [String] {
+        return ["userType", "userId"]
     }
 }
 
@@ -69,6 +84,10 @@ class SubjectRealm: Object {
     override static func primaryKey() -> String? {
         return "id"
     }
+    
+    override static func indexedProperties() -> [String] {
+        return ["userType", "userId"]
+    }
 }
 
 class TeacherRealm: Object {
@@ -80,6 +99,31 @@ class TeacherRealm: Object {
     
     override static func primaryKey() -> String? {
         return "id"
+    }
+    
+    override static func indexedProperties() -> [String] {
+        return ["userType", "userId"]
+    }
+}
+
+class TimegridRealm: Object {
+    @objc dynamic var name = ""
+    @objc dynamic var day = 0
+    @objc dynamic var start = 0
+    @objc dynamic var end = 0
+    @objc dynamic var custom = true
+    
+    @objc dynamic var startHash = ""
+    @objc dynamic var endHash = ""
+    
+    @objc dynamic var timeHash = ""
+    
+    override static func primaryKey() -> String? {
+        return "timeHash"
+    }
+    
+    override static func indexedProperties() -> [String] {
+        return ["startHash", "endHash"]
     }
 }
 
@@ -120,6 +164,9 @@ struct Lesson {
     var userType: Int
     var userId: Int
     
+    var startGrid: TimegridEntry
+    var endGrid: TimegridEntry
+    
     var dictionary: [String : Any] {
         var klassen: [[String: Any]] = [];
         var rooms: [[String: Any]] = [];
@@ -154,7 +201,9 @@ struct Lesson {
             "subjects": subjects,
             "teachers": teachers,
             "userType": self.userType,
-            "userId": self.userId
+            "userId": self.userId,
+            "startGrid": self.startGrid.dictionary,
+            "endGrid": self.endGrid.dictionary
         ];
     }
 }
@@ -229,6 +278,36 @@ struct Teacher {
             "name": self.name,
             "longname": self.longname,
             "id": self.id,
+            "userType": self.userType,
+            "userId": self.userId
+        ];
+    }
+}
+
+struct TimegridEntry {
+    var name: String
+    var day: WeekDay
+    var start: Int
+    var end: Int
+    var custom: Bool
+    
+    var startHash: String
+    var endHash: String
+    var timeHash: String
+    
+    var userType: Int
+    var userId: Int
+    
+    var dictionary: [String : Any] {
+        return [
+            "name": self.name,
+            "start": self.start,
+            "end": self.end,
+            "custom": self.custom,
+            "startHash": self.startHash,
+            "endHash": self.endHash,
+            "timeHash": self.timeHash,
+            "day": self.day.rawValue,
             "userType": self.userType,
             "userId": self.userId
         ];

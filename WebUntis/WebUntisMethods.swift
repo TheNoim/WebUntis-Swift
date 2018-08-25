@@ -12,4 +12,5 @@ enum WebUntisMethod: String {
     case AUTHENTICATE = "authenticate";
     case STATUS = "getStatusData";
     case TIMETABLE = "getTimetable";
+    case TIMEGRID = "getTimegridUnits";
 }

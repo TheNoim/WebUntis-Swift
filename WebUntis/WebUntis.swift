@@ -40,6 +40,8 @@ class WebUntis: RequestAdapter, RequestRetrier {
     public var userType = 5;
     public var userId = 0;
     
+    public var refreshAfter = 8; // minutes
+    
     private var currentSession = "";
     private var sessionExpiresAt = Date();
     
@@ -169,12 +171,78 @@ class WebUntis: RequestAdapter, RequestRetrier {
         };
     }
     
-    var lastTimetableRefresh: Date = Calendar.current.date(byAdding: .year, value: -1, to: Date())!;
+    var lastTimetableRefresh: Date {
+        get {
+            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
+                return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
+            };
+            return time.date;
+        }
+        set {
+            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
+                try? realm?.write {
+                    realm?.add(RefreshTime(value: [
+                        "name": "timetable",
+                        "date": newValue
+                    ]), update: true)
+                }
+                return;
+            };
+            try? realm?.write {
+                time.date = newValue
+            }
+        }
+    }
+    
+    var lastTimegridRefresh: Date {
+        get {
+            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
+                return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
+            };
+            return time.date;
+        }
+        set {
+            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
+                try? realm?.write {
+                    realm?.add(RefreshTime(value: [
+                        "name": "timetable",
+                        "date": newValue
+                    ]), update: true)
+                }
+                return;
+            };
+            try? realm?.write {
+                time.date = newValue
+            }
+        }
+    }
+    
+    private func getTimegridP(for type: Int = 5, with id: Int) -> Promise<[TimegridEntry]> {
+        return Promise<[TimegridEntry]> { fulfill, reject in
+            self.doJSONRPCArray(method: .TIMEGRID).then { timegridArray in
+                var result: [TimegridEntry] = [];
+                for dayU in timegridArray {
+                    if let dayObject = dayU as? [String: Any], let day = dayObject["day"] as? Int, let units = dayObject["timeUnits"] as? [Any] {
+                        let weekDay = WeekDay.untisToWeekDay(day);
+                        for unitU in units {
+                            if let unit = unitU as? [String: Any], let name = unit["name"] as? String, let startTime = unit["startTime"] as? Int, let endTime = unit["endTime"] as? Int {
+                                result.append(TimegridEntry(name: name, weekDay: weekDay, start: startTime, end: endTime, userType: type, userId: id, custom: false));
+                            }
+                        }
+                    }
+                }
+                fulfill(result);
+            }.catch { error in
+                fulfill([]);
+            }
+        };
+        
+    }
     
     @discardableResult
     public func refreshTimetable(for type: Int = 5, with id: Int, between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
-            if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: -2, to: Date())! {
+            if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: self.refreshAfter * -1, to: Date())! {
                 self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
                     "element": [
                         "id": id,
@@ -192,31 +260,35 @@ class WebUntis: RequestAdapter, RequestRetrier {
                     "teacherFields": ["id", "name", "longname"],
                 ]]).then { result in
                     var lessons: [Lesson] = [];
-                    for lessonU in result {
-                        if let lessonO = lessonU as? [String: Any], let lesson = Lesson(json: lessonO, userType: type, userId: id) {
-                            lessons.append(lesson);
-                        }
-                    }
-                    lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
-                    try? self.realm?.write {
-                        if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
-                            let oldData = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, startDate, endDate);
-                            if oldData != nil {
-                                for oldLesson in (oldData?.enumerated())! {
-                                    self.realm?.delete(oldLesson.element.klassen);
-                                    self.realm?.delete(oldLesson.element.rooms);
-                                    self.realm?.delete(oldLesson.element.subjects);
-                                    self.realm?.delete(oldLesson.element.teachers);
-                                }
-                                self.realm?.delete(oldData!);
+                    self.getTimegridP(for: type, with: id).then { timegridUnits in
+                        for lessonU in result {
+                            if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: type, userId: id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: type, userId: id)) {
+                                lessons.append(lesson);
                             }
                         }
-                        for lesson in lessons {
-                            self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
+                        lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
+                        try? self.realm?.write {
+                            if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
+                                let oldData = self.realm?.objects(LessonRealm.self).filter("userType = %@ AND userId = %@ AND start >= %@ AND end <= %@", type, id, startDate, endDate);
+                                if oldData != nil {
+                                    for oldLesson in (oldData?.enumerated())! {
+                                        self.realm?.delete(oldLesson.element.klassen);
+                                        self.realm?.delete(oldLesson.element.rooms);
+                                        self.realm?.delete(oldLesson.element.subjects);
+                                        self.realm?.delete(oldLesson.element.teachers);
+                                    }
+                                    self.realm?.delete(oldData!);
+                                }
+                            }
+                            for lesson in lessons {
+                                self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
+                            }
                         }
+                        self.lastTimetableRefresh = Date()
+                        fulfill(lessons);
                     }
-                    self.lastTimetableRefresh = Date()
-                    fulfill(lessons);
+                }.catch { error in
+                    fulfill([]);
                 }
             } else {
                 fulfill([]);
@@ -439,6 +511,35 @@ extension DataRequest {
             responseSerializer: DataRequest.jsonRPCResponseSerializerArray(),
             completionHandler: completionHandler
         )
+    }
+}
+
+enum TimegridEntryType {
+    case Start
+    case End
+}
+
+extension Array where Element == TimegridEntry {
+    func getUnitOrCreate(for type: TimegridEntryType, at day: WeekDay, at startTime: Int, at endTime: Int, userType: Int, userId: Int) -> TimegridEntry {
+        for unit in self {
+            var isCorrect = false;
+            switch(type) {
+            case .End:
+                if unit.end == endTime {
+                    isCorrect = true;
+                }
+                break;
+            case .Start:
+                if unit.start == startTime {
+                    isCorrect = true;
+                }
+                break;
+            }
+            if isCorrect {
+                return unit;
+            }
+        }
+        return TimegridEntry(name: "Unknown", weekDay: day, start: startTime, end: endTime, userType: userType, userId: userId, custom: true);
     }
 }
 

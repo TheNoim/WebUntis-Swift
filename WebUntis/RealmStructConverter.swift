@@ -32,7 +32,11 @@ func lessonStruct(by lessonsAsRealm: Results<LessonRealm>) -> [Lesson] {
             teachers.append(Teacher(id: teacher.element.id, name: teacher.element.name, longname: teacher.element.longname, userType: teacher.element.userType, userId: teacher.element.userId));
         }
         
-        lessons.append(Lesson(id: element.id, date: element.date, start: element.start, end: element.end, type: LessonType(rawValue: element.type)!, code: Code(rawValue: element.code)!, info: element.info, substitutionText: element.substitutionText, lessonText: element.lessonText, studentGroup: element.studentGroup, klassen: klassen, rooms: rooms, subjects: subjects, teachers: teachers, userType: lesson.element.userType, userId: lesson.element.userId));
+        let startGrid = TimegridEntry(name: (lesson.element.startGrid?.name)!, weekDay: WeekDay(rawValue: (lesson.element.startGrid?.day)!)!, start: (lesson.element.startGrid?.start)!, end: (lesson.element.startGrid?.end)!, userType: lesson.element.userType, userId: lesson.element.userId);
+        
+        let endGrid = TimegridEntry(name: (lesson.element.endGrid?.name)!, weekDay: WeekDay(rawValue: (lesson.element.endGrid?.day)!)!, start: (lesson.element.endGrid?.start)!, end: (lesson.element.endGrid?.end)!, userType: lesson.element.userType, userId: lesson.element.userId);
+        
+        lessons.append(Lesson(id: element.id, date: element.date, start: element.start, end: element.end, type: LessonType(rawValue: element.type)!, code: Code(rawValue: element.code)!, info: element.info, substitutionText: element.substitutionText, lessonText: element.lessonText, studentGroup: element.studentGroup, klassen: klassen, rooms: rooms, subjects: subjects, teachers: teachers, userType: lesson.element.userType, userId: lesson.element.userId, startGrid: startGrid, endGrid: endGrid));
     }
     return lessons;
 }

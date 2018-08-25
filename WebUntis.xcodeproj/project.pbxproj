@@ -26,6 +26,8 @@
 		FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158152130613900A45A77 /* WebUntisCacheModels.swift */; };
 		FB41581821307BB000A45A77 /* RealmStructConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB41581721307BB000A45A77 /* RealmStructConverter.swift */; };
 		FB41581A2130896B00A45A77 /* WebUntisDecodeable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */; };
+		FBC3A8302131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A82F2131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift */; };
+		FBC3A8322131AC9F00EB7ADC /* DayOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A8312131AC9F00EB7ADC /* DayOrder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +73,8 @@
 		FB4158152130613900A45A77 /* WebUntisCacheModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisCacheModels.swift; sourceTree = "<group>"; };
 		FB41581721307BB000A45A77 /* RealmStructConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealmStructConverter.swift; sourceTree = "<group>"; };
 		FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisDecodeable.swift; sourceTree = "<group>"; };
+		FBC3A82F2131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebUntisRefreshedTimeModel.swift; sourceTree = "<group>"; };
+		FBC3A8312131AC9F00EB7ADC /* DayOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayOrder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +134,8 @@
 				FB4158152130613900A45A77 /* WebUntisCacheModels.swift */,
 				FB41581721307BB000A45A77 /* RealmStructConverter.swift */,
 				FB4158192130896B00A45A77 /* WebUntisDecodeable.swift */,
+				FBC3A82F2131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift */,
+				FBC3A8312131AC9F00EB7ADC /* DayOrder.swift */,
 			);
 			path = WebUntis;
 			sourceTree = "<group>";
@@ -280,12 +286,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FBC3A8322131AC9F00EB7ADC /* DayOrder.swift in Sources */,
 				FB2308A4212EB8490024406A /* WebUntisMethods.swift in Sources */,
 				FB0F03E3212DE9BC00CA5462 /* WebUntis.swift in Sources */,
 				FB41581A2130896B00A45A77 /* WebUntisDecodeable.swift in Sources */,
 				FB2308A9212EC8380024406A /* WebUntisValidUser.swift in Sources */,
 				FB41581821307BB000A45A77 /* RealmStructConverter.swift in Sources */,
 				FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */,
+				FBC3A8302131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift in Sources */,
 				FB23089E212EA0780024406A /* WebUntisErrors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

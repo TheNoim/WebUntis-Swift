@@ -9,7 +9,7 @@
 import Foundation
 
 extension Lesson {
-    init?(json: [String: Any], userType: Int, userId: Int) {
+    init?(json: [String: Any], userType: Int, userId: Int, startGrid: TimegridEntry, endGrid: TimegridEntry) {
         let formatter = WebUntis.getDateFormatter();
         let timeformatter = WebUntis.getTimeDateFormatter();
         
@@ -49,6 +49,9 @@ extension Lesson {
         
         self.userType = userType;
         self.userId = userId;
+        
+        self.startGrid = startGrid;
+        self.endGrid = endGrid;
 
         for klasseU in klassenArray {
             if let klasseO = klasseU as? [String: Any], let klasse = Klasse(json: klasseO, userType: userType, userId: userId) {
@@ -129,5 +132,24 @@ extension Teacher {
         
         self.userType = userType;
         self.userId = userId;
+    }
+}
+
+extension TimegridEntry {
+    init(name: String, weekDay: WeekDay, start: Int, end: Int, userType: Int, userId: Int, custom: Bool = false) {
+        let hash = "\(weekDay)\(start)\(end)@\(userType)+\(userId)".sha1();
+        let startHash = "\(weekDay)\(start)@\(userType)+\(userId)".sha1();
+        let endHash = "\(weekDay)\(end)@\(userType)+\(userId)".sha1();
+        
+        self.custom = custom;
+        self.day = weekDay;
+        self.end = end;
+        self.start = start;
+        self.endHash = endHash;
+        self.startHash = startHash;
+        self.timeHash = hash;
+        self.userId = userId;
+        self.userType = userType;
+        self.name = name;
     }
 }
