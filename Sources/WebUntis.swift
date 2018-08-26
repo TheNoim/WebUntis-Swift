@@ -19,7 +19,7 @@ func getURLSessionConfiguration() -> URLSessionConfiguration {
     return cfg;
 }
 
-class WebUntis: EventManager, RequestAdapter, RequestRetrier {
+public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     static var `default` = WebUntis();
     
@@ -53,7 +53,7 @@ class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     public var webuntisDateFormatter = DateFormatter()
     
-    init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
+    public init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
         super.init();
         sessionManager.adapter = self;
         sessionManager.retrier = self;
