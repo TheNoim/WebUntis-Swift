@@ -8,7 +8,7 @@
 
 import Foundation
 
-extension Lesson {
+public extension Lesson {
     init?(json: [String: Any], userType: Int, userId: Int, startGrid: TimegridEntry, endGrid: TimegridEntry) {
         let formatter = WebUntis.getDateFormatter();
         let timeformatter = WebUntis.getTimeDateFormatter();
@@ -79,7 +79,7 @@ extension Lesson {
     }
 }
 
-extension Klasse {
+public extension Klasse {
     init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
@@ -93,7 +93,7 @@ extension Klasse {
     }
 }
 
-extension Room {
+public extension Room {
     init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
@@ -107,7 +107,7 @@ extension Room {
     }
 }
 
-extension Subject {
+public extension Subject {
     init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
@@ -121,7 +121,7 @@ extension Subject {
     }
 }
 
-extension Teacher {
+public extension Teacher {
     init?(json: [String: Any], userType: Int, userId: Int) {
         guard let id = json["id"] as? Int, let name = json["name"] as? String, let longname = json["longname"] as? String else {
             return nil;
@@ -135,7 +135,7 @@ extension Teacher {
     }
 }
 
-extension TimegridEntry {
+public extension TimegridEntry {
     init(name: String, weekDay: WeekDay, start: Int, end: Int, userType: Int, userId: Int, custom: Bool = false) {
         let hash = "\(weekDay)\(start)\(end)@\(userType)+\(userId)".sha1();
         let startHash = "\(weekDay)\(start)@\(userType)+\(userId)".sha1();

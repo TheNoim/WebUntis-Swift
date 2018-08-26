@@ -129,7 +129,7 @@ class TimegridRealm: Object {
 
 // Enums
 
-enum LessonType: String {
+public enum LessonType: String {
     case Lesson = "ls"
     case OfficeHour = "oh"
     case StandBy = "sb"
@@ -137,7 +137,7 @@ enum LessonType: String {
     case Examination = "ex"
 }
 
-enum Code: String {
+public enum Code: String {
     case Regular = ""
     case Cancelled = "cancelled"
     case Irregular = "irregular"
@@ -145,7 +145,7 @@ enum Code: String {
 
 // Structs
 
-struct Lesson {
+public struct Lesson {
     var id: Int
     var date: Date
     var start: Date
@@ -208,7 +208,7 @@ struct Lesson {
     }
 }
 
-struct Klasse {
+public struct Klasse {
     var id: Int
     var name: String
     var longname: String
@@ -227,7 +227,7 @@ struct Klasse {
     }
 }
 
-struct Room {
+public struct Room {
     var id: Int
     var name: String
     var longname: String
@@ -246,7 +246,7 @@ struct Room {
     }
 }
 
-struct Subject {
+public struct Subject {
     var id: Int
     var name: String
     var longname: String
@@ -265,7 +265,7 @@ struct Subject {
     }
 }
 
-struct Teacher {
+public struct Teacher {
     var id: Int
     var name: String
     var longname: String
@@ -284,7 +284,7 @@ struct Teacher {
     }
 }
 
-struct TimegridEntry {
+public struct TimegridEntry {
     var name: String
     var day: WeekDay
     var start: Int

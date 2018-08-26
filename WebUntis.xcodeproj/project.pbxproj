@@ -47,8 +47,6 @@
 		FBC3A85E2131D36E00EB7ADC /* RealmSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FBC3A85D2131D36E00EB7ADC /* RealmSwift.framework */; };
 		FBC3A85F2131D3A600EB7ADC /* Events.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A8362131CE8D00EB7ADC /* Events.swift */; };
 		FBC3A8602131D48B00EB7ADC /* WebUntis.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB0F03A3212DE5EA00CA5462 /* WebUntis.framework */; };
-		FBC3A8632131DB6400EB7ADC /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A8622131DB6400EB7ADC /* Package.swift */; };
-		FBC3A8642131DB6400EB7ADC /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC3A8622131DB6400EB7ADC /* Package.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -397,7 +395,6 @@
 				FB41581821307BB000A45A77 /* RealmStructConverter.swift in Sources */,
 				FB4158162130613900A45A77 /* WebUntisCacheModels.swift in Sources */,
 				FBC3A8302131A4A000EB7ADC /* WebUntisRefreshedTimeModel.swift in Sources */,
-				FBC3A8632131DB6400EB7ADC /* Package.swift in Sources */,
 				FB23089E212EA0780024406A /* WebUntisErrors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -423,7 +420,6 @@
 				FBC3A84B2131D33E00EB7ADC /* WebUntisValidUser.swift in Sources */,
 				FBC3A84D2131D33E00EB7ADC /* RealmStructConverter.swift in Sources */,
 				FBC3A84C2131D33E00EB7ADC /* WebUntisCacheModels.swift in Sources */,
-				FBC3A8642131DB6400EB7ADC /* Package.swift in Sources */,
 				FBC3A8492131D33A00EB7ADC /* WebUntisErrors.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

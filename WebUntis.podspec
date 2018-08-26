@@ -1,7 +1,7 @@
 
 Pod::Spec.new do |spec|
     spec.name = "WebUntis"
-    spec.version = "1.0.1"
+    spec.version = "1.0.2"
     spec.summary = "WebUntis Swift framework."
     spec.homepage = "https://noim.io"
     spec.license = { type: 'MIT', file: 'LICENSE' }

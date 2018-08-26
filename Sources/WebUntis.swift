@@ -378,7 +378,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     private var requestsToRetry: [RequestRetryCompletion] = []
     
-    func adapt(_ urlRequest: URLRequest) throws -> URLRequest {
+    public func adapt(_ urlRequest: URLRequest) throws -> URLRequest {
         if self.isSessionNotTimedout() && self.currentSession != "" {
             var urlRequest = urlRequest;
             urlRequest.setValue("JSESSIONID=\(self.currentSession); Path=/WebUntis; HttpOnly; Domain=\(self.server)", forHTTPHeaderField: "Cookie");
@@ -387,7 +387,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         return urlRequest;
     }
     
-    func should(_ manager: SessionManager, retry request: Request, with error: Error, completion: @escaping RequestRetryCompletion) {
+    public func should(_ manager: SessionManager, retry request: Request, with error: Error, completion: @escaping RequestRetryCompletion) {
         self.lock.lock() ; defer { self.lock.unlock() };
         if error.isWebUntisError(type: .UNAUTHORIZED) && self.credentialsSet() {
             requestsToRetry.append(completion);

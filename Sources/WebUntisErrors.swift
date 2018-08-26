@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum WebUntisError: Int {
+public enum WebUntisError: Int {
     case UNKNOWN = 500;
     case UNAUTHORIZED = 401;
     case CREDENTIALS_NOT_SET = 402;
@@ -22,11 +22,11 @@ enum WebUntisError: Int {
     case WEBUNTIS_BACKGROUND_REFRESH_ERROR = -500;
 }
 
-func getWebUntisErrorBy(type: WebUntisError, userInfo: [String: Any]?) -> NSError {
+public func getWebUntisErrorBy(type: WebUntisError, userInfo: [String: Any]?) -> NSError {
     return NSError(domain: "com.webuntis", code: type.rawValue, userInfo: userInfo);
 }
 
-extension Error {
+public extension Error {
     func isWebUntisError(type: WebUntisError) -> Bool {
         let error = self as NSError;
         if error.domain == "com.webuntis" && error.code == type.rawValue {
