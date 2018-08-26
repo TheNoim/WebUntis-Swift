@@ -7,7 +7,7 @@
 //
 import Foundation
 
-public class EventManager {
+class EventManager {
     // using NSMutableArray as Swift arrays can't change size inside dictionaries (yet, probably)
     var listeners = Dictionary<String, NSMutableArray>();
     
@@ -75,7 +75,7 @@ public class EventManager {
 }
 
 // Class to hold actions to live in NSMutableArray
-public class EventListenerAction {
+class EventListenerAction {
     let action:(() -> ())?;
     let actionExpectsInfo:((Any?) -> ())?;
     
