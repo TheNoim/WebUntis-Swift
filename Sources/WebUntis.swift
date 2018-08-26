@@ -14,12 +14,12 @@ import CryptoSwift
 
 func getURLSessionConfiguration() -> URLSessionConfiguration {
     let cfg = URLSessionConfiguration.ephemeral;
-    cfg.timeoutIntervalForRequest = 5;
-    cfg.timeoutIntervalForResource = 5;
+    cfg.timeoutIntervalForRequest = 20;
+    cfg.timeoutIntervalForResource = 20;
     return cfg;
 }
 
-public class WebUntis: RequestAdapter, RequestRetrier {
+public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     public static var `default` = WebUntis();
     
@@ -65,6 +65,7 @@ public class WebUntis: RequestAdapter, RequestRetrier {
     public var webuntisDateFormatter = DateFormatter()
     
     public init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
+        super.init();
         sessionManager.adapter = self;
         sessionManager.retrier = self;
         self.realmPath = url;
@@ -74,7 +75,7 @@ public class WebUntis: RequestAdapter, RequestRetrier {
     public func setCredentials(server: String, username: String, password: String, school: String) -> Promise<Bool> {
         return Promise<Bool> { fullfill, reject in
             if !self.isAccountConsideredValid(server: server, username: username, password: password, school: school) {
-                self.loginWith(server: server, username: username, password: password, school: school).then { (sessionId, type, id) -> Bool in
+                self.loginWith(server: server, username: username, password: password, school: school).then { (sessionId, type, id) -> (type: Int, id: Int) in
                     self.server = server;
                     self.username = username;
                     self.password = password;
@@ -84,18 +85,21 @@ public class WebUntis: RequestAdapter, RequestRetrier {
                     self.id = id;
                     self.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
                     self.credentialsSetAndValid = true;
-                    return true;
-                }.then {_ in
-                    self.markAccountAsValid(server: server, username: username, password: password, school: school);
+                    return (type: type, id: id);
+                }.then {(type, id) in
+                    self.markAccountAsValid(server: server, username: username, password: password, school: school, type: type, id: id);
                     fullfill(true);
                 }.catch { error in
                     reject(error);
                 }
             } else {
+                let (type, id) = self.userTypeAndIdFromValidAccount(server: server, username: username, password: password, school: school);
                 self.server = server;
                 self.username = username;
                 self.password = password;
                 self.school = school;
+                self.type = type;
+                self.id = id;
                 self.credentialsSetAndValid = true;
                 fullfill(true);
             }
@@ -305,15 +309,11 @@ public class WebUntis: RequestAdapter, RequestRetrier {
                             }
                         }
                         self.lastTimetableRefresh = Date()
-                        DispatchQueue.main.sync {
-                            self.events.trigger(eventName: "refresh");
-                        }
+                        self.trigger(eventName: "refresh");
                         fulfill(lessons);
                     }
                 }.catch { error in
-                    DispatchQueue.main.sync {
-                        self.events.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
-                    }
+                    self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error, "session": self.currentSession]));
                     fulfill([]);
                 }
             } else {
@@ -330,7 +330,7 @@ public class WebUntis: RequestAdapter, RequestRetrier {
                 "jsonrpc": "2.0",
                 "params": params
             ];
-            self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPC { response in
+            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPC { response in
                 switch response.result {
                 case .success:
                     guard let result = response.result.value else {
@@ -343,6 +343,7 @@ public class WebUntis: RequestAdapter, RequestRetrier {
                     reject(error);
                 }
             };
+            debugPrint(r)
         };
     }
     
@@ -424,13 +425,21 @@ public class WebUntis: RequestAdapter, RequestRetrier {
         return validAccount != nil;
     }
     
-    public func markAccountAsValid(server: String, username: String, password: String, school: String) {
+    private func userTypeAndIdFromValidAccount(server: String, username: String, password: String, school: String) -> (type: Int, id: Int) {
+        let hash = accountHash(server: server, username: username, password: password, school: school);
+        let validAccount = self.realm.object(ofType: ValidAccount.self, forPrimaryKey: hash);
+        return (type: (validAccount?.type)!, id: (validAccount?.id)!);
+    }
+    
+    public func markAccountAsValid(server: String, username: String, password: String, school: String, type: Int, id: Int) {
         let hash = accountHash(server: server, username: username, password: password, school: school);
         let validAccount = ValidAccount();
         validAccount.accountHash = hash;
         validAccount.school = school;
         validAccount.server = server;
         validAccount.username = username;
+        validAccount.type = type;
+        validAccount.id = id;
         try? realm.write {
             realm.add(validAccount);
         }
@@ -482,7 +491,7 @@ extension DataRequest {
         return validate { request,response,data in
             let json = try? JSONSerialization.jsonObject(with: data!, options: []);
             guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
             }
             if let error = root["error"] as? [String: Any] {
                 guard let code = error["code"] as? Int else {
@@ -508,7 +517,7 @@ extension DataRequest {
         return DataResponseSerializer { request, response, data, error in
             let json = try? JSONSerialization.jsonObject(with: data!, options: []);
             guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
             }
             if let result = root["result"] as? [String: Any] {
                 return .success(result);
@@ -522,7 +531,7 @@ extension DataRequest {
         return DataResponseSerializer { request, response, data, error in
             let json = try? JSONSerialization.jsonObject(with: data!, options: []);
             guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: nil));
+                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
             }
             if let result = root["result"] as? [Any] {
                 return .success(result);
@@ -578,6 +587,100 @@ extension Array where Element == TimegridEntry {
         }
         return TimegridEntry(name: "Unknown", weekDay: day, start: startTime, end: endTime, userType: userType, userId: userId, custom: true);
     }
+}
+
+extension Array where Element == TimegridEntry {
+    
+    func startAndEndGrid(startHash: String, endHash: String) -> [TimegridEntry] {
+        var startCollecting = false;
+        var ent: [TimegridEntry] = [];
+        for entry in self {
+            if entry.timeHash == startHash {
+                startCollecting = true;
+            }
+            if startCollecting {
+                ent.append(entry)
+            }
+            if entry.timeHash == endHash {
+                startCollecting = false;
+            }
+        }
+        return ent;
+    }
+    
+}
+
+extension Array where Element == Lesson {
+    
+    func getVisibleLessons() -> [Lesson] {
+        var lessons: [Lesson] = [];
+        
+        // Add all regular and irregular
+        for lesson in self {
+            if lesson.code != Code.Cancelled {
+                lessons.append(lesson);
+            }
+        }
+        
+        var splitLessons: [Lesson] = [];
+        
+        // Get all used Timegrid Units
+        
+        var timeGridEntries: [TimegridEntry] = [];
+        for lesson in self {
+            if !timeGridEntries.contains(where: { e in
+                return lesson.startGrid.timeHash == e.timeHash
+            }) {
+                timeGridEntries.append(lesson.startGrid);
+            }
+            if !timeGridEntries.contains(where: { e in
+                return lesson.endGrid.timeHash == e.timeHash
+            }) {
+                timeGridEntries.append(lesson.endGrid);
+            }
+        }
+        timeGridEntries = timeGridEntries.sorted(by: { $0.start < $1.start });
+        // Split all double units into one
+        for lesson in self {
+            if lesson.startGrid.timeHash != lesson.endGrid.timeHash {
+                let splittedTimegridEntries: [TimegridEntry] = timeGridEntries.startAndEndGrid(startHash: lesson.startGrid.timeHash, endHash: lesson.endGrid.timeHash);
+                for entry in splittedTimegridEntries {
+                    let newLesson = Lesson(id: lesson.id, date: lesson.date, start: lesson.start, end: lesson.end, type: lesson.type, code: lesson.code, info: lesson.info, substitutionText: lesson.substitutionText, lessonText: lesson.lessonText, studentGroup: lesson.studentGroup, klassen: lesson.klassen, rooms: lesson.rooms, subjects: lesson.subjects, teachers: lesson.teachers, userType: lesson.userType, userId: lesson.userId, startGrid: entry, endGrid: entry);
+                    splitLessons.append(newLesson);
+                }
+            } else {
+                splitLessons.append(lesson);
+            }
+        }
+        
+        for lesson in splitLessons {
+            if !splitLessons.getLessonsInSameGrid(entry: lesson.startGrid).isThereALessonWhichIsNotCancelled() {
+                lessons.append(lesson);
+            }
+        }
+        
+        return lessons;
+    }
+    
+    func isThereALessonWhichIsNotCancelled() -> Bool {
+        for lesson in self {
+            if lesson.code != Code.Cancelled {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    func getLessonsInSameGrid(entry: TimegridEntry) -> [Lesson] {
+        var newList: [Lesson] = [];
+        for l in self {
+            if l.startGrid.timeHash == entry.timeHash {
+                newList.append(l);
+            }
+        }
+        return newList;
+    }
+    
 }
 
 func randomString(length: Int) -> String {

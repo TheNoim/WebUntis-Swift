@@ -14,7 +14,8 @@ class ValidAccount: Object {
     @objc dynamic var server = ""
     @objc dynamic var school = ""
     @objc dynamic var accountHash = ""
-    
+    @objc dynamic var type = 0
+    @objc dynamic var id = 0
     override static func primaryKey() -> String? {
         return "accountHash"
     }

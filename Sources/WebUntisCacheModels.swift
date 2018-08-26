@@ -146,26 +146,26 @@ public enum Code: String {
 // Structs
 
 public struct Lesson {
-    var id: Int
-    var date: Date
-    var start: Date
-    var end: Date
-    var type: LessonType
-    var code: Code
-    var info: String
-    var substitutionText: String
-    var lessonText: String
-    var studentGroup: String
-    var klassen: [Klasse]
-    var rooms: [Room]
-    var subjects: [Subject]
-    var teachers: [Teacher]
+    public var id: Int
+    public var date: Date
+    public var start: Date
+    public var end: Date
+    public var type: LessonType
+    public var code: Code
+    public var info: String
+    public var substitutionText: String
+    public var lessonText: String
+    public var studentGroup: String
+    public var klassen: [Klasse]
+    public var rooms: [Room]
+    public var subjects: [Subject]
+    public var teachers: [Teacher]
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
-    var startGrid: TimegridEntry
-    var endGrid: TimegridEntry
+    public var startGrid: TimegridEntry
+    public var endGrid: TimegridEntry
     
     var dictionary: [String : Any] {
         var klassen: [[String: Any]] = [];
@@ -209,14 +209,14 @@ public struct Lesson {
 }
 
 public struct Klasse {
-    var id: Int
-    var name: String
-    var longname: String
+    public var id: Int
+    public var name: String
+    public var longname: String
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
-    var dictionary: [String : Any] {
+    public var dictionary: [String : Any] {
         return [
             "name": self.name,
             "longname": self.longname,
@@ -228,14 +228,14 @@ public struct Klasse {
 }
 
 public struct Room {
-    var id: Int
-    var name: String
-    var longname: String
+    public var id: Int
+    public var name: String
+    public var longname: String
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
-    var dictionary: [String : Any] {
+    public var dictionary: [String : Any] {
         return [
             "name": self.name,
             "longname": self.longname,
@@ -247,14 +247,14 @@ public struct Room {
 }
 
 public struct Subject {
-    var id: Int
-    var name: String
-    var longname: String
+    public var id: Int
+    public var name: String
+    public var longname: String
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
-    var dictionary: [String : Any] {
+    public var dictionary: [String : Any] {
         return [
             "name": self.name,
             "longname": self.longname,
@@ -266,12 +266,12 @@ public struct Subject {
 }
 
 public struct Teacher {
-    var id: Int
-    var name: String
-    var longname: String
+    public var id: Int
+    public var name: String
+    public var longname: String
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
     var dictionary: [String : Any] {
         return [
@@ -285,20 +285,20 @@ public struct Teacher {
 }
 
 public struct TimegridEntry {
-    var name: String
-    var day: WeekDay
-    var start: Int
-    var end: Int
-    var custom: Bool
+    public var name: String
+    public var day: WeekDay
+    public var start: Int
+    public var end: Int
+    public var custom: Bool
     
-    var startHash: String
-    var endHash: String
-    var timeHash: String
+    public var startHash: String
+    public var endHash: String
+    public var timeHash: String
     
-    var userType: Int
-    var userId: Int
+    public var userType: Int
+    public var userId: Int
     
-    var dictionary: [String : Any] {
+    public var dictionary: [String : Any] {
         return [
             "name": self.name,
             "start": self.start,

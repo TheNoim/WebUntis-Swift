@@ -16,7 +16,7 @@ public class EventManager {
     // + action: The block of code you want executed when the event triggers
     public func listenTo(eventName:String, action: @escaping (()->())) {
         let newListener = EventListenerAction(callback: action);
-        addListener(eventName: eventName, newEventListener: newListener);
+        self.addListener(eventName: eventName, newEventListener: newListener);
     }
     
     // Create a new event listener, expecting information from the trigger
@@ -24,7 +24,7 @@ public class EventManager {
     // + action: The block of code you want executed when the event triggers
     public func listenTo(eventName:String, action: @escaping ((Any?)->())) {
         let newListener = EventListenerAction(callback: action);
-        addListener(eventName: eventName, newEventListener: newListener);
+        self.addListener(eventName: eventName, newEventListener: newListener);
     }
     
     internal func addListener(eventName:String, newEventListener:EventListenerAction) {
