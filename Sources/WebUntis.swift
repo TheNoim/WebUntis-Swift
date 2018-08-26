@@ -305,11 +305,15 @@ public class WebUntis: RequestAdapter, RequestRetrier {
                             }
                         }
                         self.lastTimetableRefresh = Date()
-                        self.events.trigger(eventName: "refresh");
+                        DispatchQueue.main.sync {
+                            self.events.trigger(eventName: "refresh");
+                        }
                         fulfill(lessons);
                     }
                 }.catch { error in
-                    self.events.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
+                    DispatchQueue.main.sync {
+                        self.events.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
+                    }
                     fulfill([]);
                 }
             } else {
