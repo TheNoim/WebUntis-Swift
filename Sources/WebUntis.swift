@@ -21,7 +21,7 @@ func getURLSessionConfiguration() -> URLSessionConfiguration {
 
 public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
-    static var `default` = WebUntis();
+    public static var `default` = WebUntis();
     
     private var credentialsSetAndValid = false;
     
