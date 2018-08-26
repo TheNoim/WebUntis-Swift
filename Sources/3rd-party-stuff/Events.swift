@@ -14,7 +14,7 @@ public class EventManager {
     // Create a new event listener, not expecting information from the trigger
     // + eventName: Matching trigger eventNames will cause this listener to fire
     // + action: The block of code you want executed when the event triggers
-    func listenTo(eventName:String, action: @escaping (()->())) {
+    public func listenTo(eventName:String, action: @escaping (()->())) {
         let newListener = EventListenerAction(callback: action);
         addListener(eventName: eventName, newEventListener: newListener);
     }
@@ -22,7 +22,7 @@ public class EventManager {
     // Create a new event listener, expecting information from the trigger
     // + eventName: Matching trigger eventNames will cause this listener to fire
     // + action: The block of code you want executed when the event triggers
-    func listenTo(eventName:String, action: @escaping ((Any?)->())) {
+    public func listenTo(eventName:String, action: @escaping ((Any?)->())) {
         let newListener = EventListenerAction(callback: action);
         addListener(eventName: eventName, newEventListener: newListener);
     }
@@ -40,7 +40,7 @@ public class EventManager {
     
     // Removes all listeners by default, or specific listeners through paramters
     // + eventName: If an event name is passed, only listeners for that event will be removed
-    func removeListeners(eventNameToRemoveOrNil:String?) {
+    public func removeListeners(eventNameToRemoveOrNil:String?) {
         if let eventNameToRemove = eventNameToRemoveOrNil {
             // remove listeners for a specific event
             
