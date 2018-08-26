@@ -25,7 +25,16 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     private var credentialsSetAndValid = false;
     
-    private var realm: Realm?;
+    private var realm: Realm {
+        var config = Realm.Configuration();
+        config.fileURL = self.realmPath;
+        Realm.Configuration.defaultConfiguration = config;
+        if let _ = NSClassFromString("XCTest") {
+            return try! Realm(configuration: Realm.Configuration(fileURL: nil, inMemoryIdentifier: "test", encryptionKey: nil, readOnly: false, schemaVersion: 0, migrationBlock: nil, objectTypes: nil))
+        } else {
+            return try! Realm();
+        }
+    }
     
     // Static
     private let identity = randomString(length: 10);
@@ -57,15 +66,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         super.init();
         sessionManager.adapter = self;
         sessionManager.retrier = self;
-        var config = Realm.Configuration();
-        config.fileURL = url;
         self.realmPath = url;
-        Realm.Configuration.defaultConfiguration = config;
-        if let _ = NSClassFromString("XCTest") {
-            self.realm = try! Realm(configuration: Realm.Configuration(fileURL: nil, inMemoryIdentifier: "test", encryptionKey: nil, readOnly: false, schemaVersion: 0, migrationBlock: nil, objectTypes: nil))
-        } else {
-            self.realm = try! Realm();
-        }
         webuntisDateFormatter.dateFormat = "YYYYMMdd";
     }
     
@@ -163,7 +164,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     }
     
     private func getTimetableFromCache(between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
-        return self.realm?.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
+        return self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
     }
     
     public func getTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
@@ -191,22 +192,22 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     var lastTimetableRefresh: Date {
         get {
-            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
+            guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
                 return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
             };
             return time.date;
         }
         set {
-            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
-                try? realm?.write {
-                    realm?.add(RefreshTime(value: [
+            guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
+                try? realm.write {
+                    realm.add(RefreshTime(value: [
                         "name": "timetable",
                         "date": newValue
                     ]), update: true)
                 }
                 return;
             };
-            try? realm?.write {
+            try? realm.write {
                 time.date = newValue
             }
         }
@@ -214,22 +215,22 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     var lastTimegridRefresh: Date {
         get {
-            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
+            guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
                 return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
             };
             return time.date;
         }
         set {
-            guard let time = self.realm?.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
-                try? realm?.write {
-                    realm?.add(RefreshTime(value: [
+            guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
+                try? realm.write {
+                    realm.add(RefreshTime(value: [
                         "name": "timetable",
                         "date": newValue
                     ]), update: true)
                 }
                 return;
             };
-            try? realm?.write {
+            try? realm.write {
                 time.date = newValue
             }
         }
@@ -285,21 +286,21 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                             }
                         }
                         lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
-                        try? self.realm?.write {
+                        try? self.realm.write {
                             if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
                                 let oldData = self.getTimetableFromCache(between: start, and: end);
                                 if oldData != nil {
                                     for oldLesson in (oldData?.enumerated())! {
-                                        self.realm?.delete(oldLesson.element.klassen);
-                                        self.realm?.delete(oldLesson.element.rooms);
-                                        self.realm?.delete(oldLesson.element.subjects);
-                                        self.realm?.delete(oldLesson.element.teachers);
+                                        self.realm.delete(oldLesson.element.klassen);
+                                        self.realm.delete(oldLesson.element.rooms);
+                                        self.realm.delete(oldLesson.element.subjects);
+                                        self.realm.delete(oldLesson.element.teachers);
                                     }
-                                    self.realm?.delete(oldData!);
+                                    self.realm.delete(oldData!);
                                 }
                             }
                             for lesson in lessons {
-                                self.realm?.add(LessonRealm(value: lesson.dictionary), update: true);
+                                self.realm.add(LessonRealm(value: lesson.dictionary), update: true);
                             }
                         }
                         self.lastTimetableRefresh = Date()
@@ -414,7 +415,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     public func isAccountConsideredValid(server: String, username: String, password: String, school: String) -> Bool {
         let hash = accountHash(server: server, username: username, password: password, school: school);
-        let validAccount = self.realm?.object(ofType: ValidAccount.self, forPrimaryKey: hash);
+        let validAccount = self.realm.object(ofType: ValidAccount.self, forPrimaryKey: hash);
         return validAccount != nil;
     }
     
@@ -425,18 +426,18 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         validAccount.school = school;
         validAccount.server = server;
         validAccount.username = username;
-        try? realm?.write {
-            realm?.add(validAccount);
+        try? realm.write {
+            realm.add(validAccount);
         }
     }
     
     public func invalidateAccount(server: String, username: String, password: String, school: String) {
         let hash = accountHash(server: server, username: username, password: password, school: school);
-        guard let validAccount = self.realm?.object(ofType: ValidAccount.self, forPrimaryKey: hash) else {
+        guard let validAccount = self.realm.object(ofType: ValidAccount.self, forPrimaryKey: hash) else {
             return;
         }
-        try? realm?.write {
-            realm?.delete(validAccount);
+        try? realm.write {
+            realm.delete(validAccount);
         }
     }
     
