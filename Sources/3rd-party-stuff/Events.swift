@@ -75,7 +75,7 @@ public class EventManager {
 }
 
 // Class to hold actions to live in NSMutableArray
-class EventListenerAction {
+public class EventListenerAction {
     let action:(() -> ())?;
     let actionExpectsInfo:((Any?) -> ())?;
     

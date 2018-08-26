@@ -19,7 +19,7 @@ func getURLSessionConfiguration() -> URLSessionConfiguration {
     return cfg;
 }
 
-public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
+public class WebUntis: RequestAdapter, RequestRetrier {
     
     public static var `default` = WebUntis();
     
@@ -49,6 +49,8 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     public var type = 5;
     public var id = 0;
     
+    public var events = EventManager()
+    
     public var refreshAfter = 8; // minutes
     
     private var currentSession = "";
@@ -63,7 +65,6 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     public var webuntisDateFormatter = DateFormatter()
     
     public init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
-        super.init();
         sessionManager.adapter = self;
         sessionManager.retrier = self;
         self.realmPath = url;
@@ -304,11 +305,11 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                             }
                         }
                         self.lastTimetableRefresh = Date()
-                        self.trigger(eventName: "refresh");
+                        self.events.trigger(eventName: "refresh");
                         fulfill(lessons);
                     }
                 }.catch { error in
-                    self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
+                    self.events.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error]));
                     fulfill([]);
                 }
             } else {
