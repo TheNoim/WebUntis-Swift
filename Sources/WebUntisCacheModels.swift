@@ -81,6 +81,9 @@ class SubjectRealm: Object {
     @objc dynamic var userType = 0
     @objc dynamic var userId = 0
     
+    @objc dynamic var backgroundColor = "ffffff"
+    @objc dynamic var foregroundColor = "000000"
+    
     override static func primaryKey() -> String? {
         return "id"
     }
@@ -251,6 +254,9 @@ public struct Subject {
     public var name: String
     public var longname: String
     
+    public var backgroundColor: String
+    public var foregroundColor: String
+    
     public var userType: Int
     public var userId: Int
     
@@ -260,7 +266,9 @@ public struct Subject {
             "longname": self.longname,
             "id": self.id,
             "userType": self.userType,
-            "userId": self.userId
+            "userId": self.userId,
+            "backgroundColor": self.backgroundColor,
+            "foregroundColor": self.foregroundColor
         ];
     }
 }

@@ -118,6 +118,16 @@ public extension Subject {
         
         self.userType = userType;
         self.userId = userId;
+        if let backgroundColor = json["backColor"] as? String {
+            self.backgroundColor = backgroundColor;
+        } else {
+            self.backgroundColor = "ffffff"
+        }
+        if let foregroundColor = json["foreColor"] as? String {
+            self.foregroundColor = foregroundColor;
+        } else {
+            self.foregroundColor = "000000"
+        }
     }
 }
 

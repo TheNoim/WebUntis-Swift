@@ -66,10 +66,30 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     
     public init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
         super.init();
+        dump(url);
         sessionManager.adapter = self;
         sessionManager.retrier = self;
         self.realmPath = url;
         webuntisDateFormatter.dateFormat = "YYYYMMdd";
+    }
+    
+    public func configureForOfflineUsage(server: String, username: String, password: String, school: String) -> Promise<Bool> {
+        return Promise<Bool> { fullfill, reject in
+            if !self.isAccountConsideredValid(server: server, username: username, password: password, school: school) {
+                return fullfill(false);
+            } else {
+                let (type, id) = dump(self.userTypeAndIdFromValidAccount(server: server, username: username, password: password, school: school));
+                self.server = server;
+                self.username = username;
+                self.password = password;
+                self.school = school;
+                self.type = type;
+                self.id = id;
+                self.credentialsSetAndValid = true;
+                print("Fulfill")
+                fullfill(true);
+            }
+        };
     }
     
     public func setCredentials(server: String, username: String, password: String, school: String) -> Promise<Bool> {
@@ -172,13 +192,22 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         return self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
     }
     
-    public func getTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
+    public func getTimetableFromDatabase(between start: Date = Date(), and end: Date = Date()) -> [Lesson] {
+        if let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end) {
+            return lessonStruct(by: lessonsAsRealm);
+        }
+        return [];
+    }
+    
+    public func getTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false, startBackgroundRefresh: Bool = true) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end), !forceRefresh {
                 fulfill(lessonStruct(by: lessonsAsRealm))
-                self.refreshTimetable(between: start, and: end).then { _ in
-                    print("Finish refresh!")
-                };
+                if startBackgroundRefresh {
+                    self.refreshTimetable(between: start, and: end).then { _ in
+                        print("Finish refresh!")
+                    };
+                }
             } else {
                 print("Hello my friend")
                 self.refreshTimetable(between: start, and: end, forceRefresh: true).then { lessons in
@@ -263,58 +292,101 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         
     }
     
+    private func subjectColors(l: [Lesson]) -> Promise<[Lesson]> {
+        return Promise<[Lesson]> { fulfill, reject in
+            self.doJSONRPCArray(method: .SUBJECTS).then { result in
+                var lessonDic: [Int: [String: String]] = [:];
+                for s in result {
+                    if let subject = s as? [String: Any], let id = subject["id"] as? Int {
+                        lessonDic[id] = [:];
+                        if let backgroundColor = subject["backColor"] as? String {
+                            lessonDic[id]!["backgroundColor"] = backgroundColor
+                        }
+                        if let foregroundColor = subject["foreColor"] as? String {
+                            lessonDic[id]!["foregroundColor"] = foregroundColor
+                        }
+                    }
+                }
+                var lessons: [Lesson] = [];
+                lessons.append(contentsOf: l);
+                for (lessonIndex, lesson) in lessons.enumerated() {
+                    for (index, subject) in lesson.subjects.enumerated() {
+                        if let colors = lessonDic[subject.id] {
+                            if let backgroundColor = colors["backgroundColor"] {
+                                lessons[lessonIndex].subjects[index].backgroundColor = backgroundColor;
+                            }
+                            if let foregroundColor = colors["foregroundColor"] {
+                                lessons[lessonIndex].subjects[index].foregroundColor = foregroundColor;
+                            }
+                        }
+                    }
+                }
+                fulfill(lessons);
+            }.catch { error in
+                print("\(error.localizedDescription)");
+                fulfill(l);
+            }
+        };
+    }
+    
     @discardableResult
     public func refreshTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: self.refreshAfter * -1, to: Date())! {
-                self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
-                    "element": [
-                        "id": self.id,
-                        "type": self.type
-                    ],
-                    "startDate": self.webuntisDateFormatter.string(from: start),
-                    "endDate": self.webuntisDateFormatter.string(from: end),
-                    "showInfo": true,
-                    "showSubstText": true,
-                    "showLsText": true,
-                    "showStudentgroup": true,
-                    "klasseFields": ["id", "name", "longname"],
-                    "roomFields": ["id", "name", "longname"],
-                    "subjectFields": ["id", "name", "longname"],
-                    "teacherFields": ["id", "name", "longname"],
-                ]]).then { result in
-                    var lessons: [Lesson] = [];
-                    self.getTimegridP().then { timegridUnits in
-                        for lessonU in result {
-                            if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: self.type, userId: self.id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id)) {
-                                lessons.append(lesson);
-                            }
-                        }
-                        lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
-                        try? self.realm.write {
-                            if let startDate = lessons.first?.start, let endDate = lessons.last?.end {
-                                let oldData = self.getTimetableFromCache(between: start, and: end);
-                                if oldData != nil {
-                                    for oldLesson in (oldData?.enumerated())! {
-                                        self.realm.delete(oldLesson.element.klassen);
-                                        self.realm.delete(oldLesson.element.rooms);
-                                        self.realm.delete(oldLesson.element.subjects);
-                                        self.realm.delete(oldLesson.element.teachers);
-                                    }
-                                    self.realm.delete(oldData!);
+                DispatchQueue(label: "background").async {
+                    autoreleasepool {
+                        self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
+                            "element": [
+                                "id": self.id,
+                                "type": self.type
+                            ],
+                            "startDate": self.webuntisDateFormatter.string(from: start),
+                            "endDate": self.webuntisDateFormatter.string(from: end),
+                            "showInfo": true,
+                            "showSubstText": true,
+                            "showLsText": true,
+                            "showStudentgroup": true,
+                            "klasseFields": ["id", "name", "longname"],
+                            "roomFields": ["id", "name", "longname"],
+                            "subjectFields": ["id", "name", "longname"],
+                            "teacherFields": ["id", "name", "longname"],
+                        ]]).then { result in
+                            var lessons: [Lesson] = [];
+                            self.getTimegridP().then { timegridUnits in
+                                for lessonU in result {
+                                    if let lessonO = lessonU as? [String: Any], let dateInt = lessonO["date"] as? Int, let date = self.webuntisDateFormatter.date(from: "\(dateInt)"), let startTime = lessonO["startTime"] as? Int, let endTime = lessonO["endTime"] as? Int, let lesson = Lesson(json: lessonO, userType: self.type, userId: self.id, startGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.Start, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id), endGrid: timegridUnits.getUnitOrCreate(for: TimegridEntryType.End, at: WeekDay.dateToWeekDay(date: date), at: startTime, at: endTime, userType: self.type, userId: self.id)) {
+                                            lessons.append(lesson);
+                                        }
                                 }
+                                lessons = lessons.sorted(by: { $0.start.compare($1.start) == .orderedAscending });
+                                self.subjectColors(l: lessons).then { lessons in
+                                    try? self.realm.beginWrite();
+                                    if let _ = lessons.first?.start, let _ = lessons.last?.end {
+                                        let oldData = self.getTimetableFromCache(between: start, and: end);
+                                        if oldData != nil {
+                                            for oldLesson in (oldData?.enumerated())! {
+                                                self.realm.delete(oldLesson.element.klassen);
+                                                self.realm.delete(oldLesson.element.rooms);
+                                                self.realm.delete(oldLesson.element.subjects);
+                                                self.realm.delete(oldLesson.element.teachers);
+                                            }
+                                            self.realm.delete(oldData!);
+                                        }
+                                    }
+                                    for lesson in lessons {
+                                        self.realm.add(LessonRealm(value: lesson.dictionary), update: true);
+                                    }
+                                    try? self.realm.commitWrite();
+                                    self.lastTimetableRefresh = Date()
+                                    self.trigger(eventName: "refresh");
+                                    fulfill(lessons);
+                                };
                             }
-                            for lesson in lessons {
-                                self.realm.add(LessonRealm(value: lesson.dictionary), update: true);
-                            }
+                        }.catch { error in
+                            self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error, "session": self.currentSession]));
+                            fulfill([]);
                         }
-                        self.lastTimetableRefresh = Date()
-                        self.trigger(eventName: "refresh");
-                        fulfill(lessons);
                     }
-                }.catch { error in
-                    self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error, "session": self.currentSession]));
-                    fulfill([]);
                 }
             } else {
                 fulfill([]);
@@ -422,7 +494,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     public func isAccountConsideredValid(server: String, username: String, password: String, school: String) -> Bool {
         let hash = accountHash(server: server, username: username, password: password, school: school);
         let validAccount = self.realm.object(ofType: ValidAccount.self, forPrimaryKey: hash);
-        return validAccount != nil;
+        return dump(validAccount != nil);
     }
     
     private func userTypeAndIdFromValidAccount(server: String, username: String, password: String, school: String) -> (type: Int, id: Int) {
@@ -565,6 +637,19 @@ enum TimegridEntryType {
     case End
 }
 
+extension Array where Element == Subject {
+    
+    func findID(id: Int) -> (success: Bool, index: Int) {
+        for (index, subject) in self.enumerated() {
+            if subject.id == id {
+                return (success: true, index: index);
+            }
+        }
+        return (success: false, index: -1);
+    }
+    
+}
+
 extension Array where Element == TimegridEntry {
     func getUnitOrCreate(for type: TimegridEntryType, at day: WeekDay, at startTime: Int, at endTime: Int, userType: Int, userId: Int) -> TimegridEntry {
         for unit in self {
@@ -610,9 +695,9 @@ extension Array where Element == TimegridEntry {
     
 }
 
-extension Array where Element == Lesson {
+public extension Array where Element == Lesson {
     
-    func getVisibleLessons() -> [Lesson] {
+    public func getVisibleLessons() -> [Lesson] {
         var lessons: [Lesson] = [];
         
         // Add all regular and irregular

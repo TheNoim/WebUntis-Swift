@@ -26,7 +26,7 @@ func lessonStruct(by lessonsAsRealm: Results<LessonRealm>) -> [Lesson] {
             rooms.append(Room(id: room.element.id, name: room.element.name, longname: room.element.longname, userType: room.element.userType, userId: room.element.userId));
         }
         for subject in element.subjects.enumerated() {
-            subjects.append(Subject(id: subject.element.id, name: subject.element.name, longname: subject.element.longname, userType: subject.element.userType, userId: subject.element.userId));
+            subjects.append(Subject(id: subject.element.id, name: subject.element.name, longname: subject.element.longname, backgroundColor: subject.element.backgroundColor, foregroundColor: subject.element.foregroundColor, userType: subject.element.userType, userId: subject.element.userId));
         }
         for teacher in element.teachers.enumerated() {
             teachers.append(Teacher(id: teacher.element.id, name: teacher.element.name, longname: teacher.element.longname, userType: teacher.element.userType, userId: teacher.element.userId));
