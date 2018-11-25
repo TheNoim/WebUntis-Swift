@@ -333,8 +333,8 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     public func refreshTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false) -> Promise<[Lesson]> {
         return Promise<[Lesson]> { fulfill, reject in
             if forceRefresh || self.lastTimetableRefresh < Calendar.current.date(byAdding: .minute, value: self.refreshAfter * -1, to: Date())! {
-                DispatchQueue(label: "background").async {
-                    autoreleasepool {
+                //DispatchQueue(label: "background").async {
+                //    autoreleasepool {
                         self.doJSONRPCArray(method: .TIMETABLE, params: ["options": [
                             "element": [
                                 "id": self.id,
@@ -386,8 +386,8 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                             self.trigger(eventName: "error", information: getWebUntisErrorBy(type: .WEBUNTIS_BACKGROUND_REFRESH_ERROR, userInfo: ["error": error, "session": self.currentSession]));
                             fulfill([]);
                         }
-                    }
-                }
+                    //}
+                //}
             } else {
                 fulfill([]);
             }
