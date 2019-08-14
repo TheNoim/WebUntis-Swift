@@ -1,4 +1,4 @@
-github "google/promises"
-github "Alamofire/Alamofire" ~> 4.7
-github "realm/realm-cocoa"
-github "krzyzanowskim/CryptoSwift"
+github "google/promises" ~> 1.2.8
+github "Alamofire/Alamofire" ~> 4.8.2
+github "realm/realm-cocoa" ~> 3.17.3
+github "krzyzanowskim/CryptoSwift" ~> 1.0.0
