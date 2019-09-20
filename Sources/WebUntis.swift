@@ -188,15 +188,26 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         };
     }
     
-    private func getTimetableFromCache(between start: Date = Date(), and end: Date = Date()) -> Results<LessonRealm>? {
-        return self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
+    private func getTimetableFromCache(between start: Date = Date(), and end: Date = Date(), onlyNotCancelled: Bool = false) -> Results<LessonRealm>? {
+        if !onlyNotCancelled {
+            return self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@", type, id, start, end);
+        } else {
+            return self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@ AND start >= %@ AND start <= %@ AND code != %@", type, id, start, end, Code.Cancelled);
+        }
     }
     
-    public func getTimetableFromDatabase(between start: Date = Date(), and end: Date = Date()) -> [Lesson] {
-        if let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end) {
+    public func getTimetableFromDatabase(between start: Date = Date(), and end: Date = Date(), onlyNotCancelled: Bool = false) -> [Lesson] {
+        if let lessonsAsRealm = self.getTimetableFromCache(between: start, and: end, onlyNotCancelled: onlyNotCancelled) {
             return lessonStruct(by: lessonsAsRealm);
         }
         return [];
+    }
+    
+    public func getTimelineStartAndEnd() -> (Date?, Date?) {
+        let lessons = self.realm.objects(LessonRealm.self).filter("userType == %@ AND userId == %@", type, id).sorted(by: { $0.start < $1.start });
+        let start = lessons.first?.start;
+        let end = lessons.last?.end;
+        return (start, end);
     }
     
     public func getTimetable(between start: Date = Date(), and end: Date = Date(), forceRefresh: Bool = false, startBackgroundRefresh: Bool = true) -> Promise<[Lesson]> {
