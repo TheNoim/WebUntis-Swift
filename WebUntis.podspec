@@ -18,7 +18,7 @@ Pod::Spec.new do |spec|
     spec.source_files = "Sources/**/*.{h,swift}"
 
     spec.dependency "PromisesSwift", "~> 1.2.8"
-    spec.dependency "Alamofire", "~> 4.8.2"
-    spec.dependency "RealmSwift", "~> 3.17.3"
-    spec.dependency "CryptoSwift", "~> 1.0.0"
+    spec.dependency "Alamofire", "~> 4.9.1"
+    spec.dependency "RealmSwift", "~> 3.21.0"
+    spec.dependency "CryptoSwift", "~> 1.2.0"
 end

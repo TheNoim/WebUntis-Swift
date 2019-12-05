@@ -325,10 +325,11 @@
 				TargetAttributes = {
 					FB0F03A2212DE5EA00CA5462 = {
 						CreatedOnToolsVersion = 9.4.1;
-						LastSwiftMigration = 0940;
+						LastSwiftMigration = 1120;
 					};
 					FB0F03AB212DE5EA00CA5462 = {
 						CreatedOnToolsVersion = 9.4.1;
+						LastSwiftMigration = 1120;
 					};
 					FBC3A83C2131D07E00EB7ADC = {
 						CreatedOnToolsVersion = 9.4.1;
@@ -580,7 +581,7 @@
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -607,7 +608,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "io.noim.$(PROJECT_NAME)";
 				PRODUCT_NAME = "$(PROJECT_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -626,7 +627,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.noim.WebUntisTests;
 				PRODUCT_NAME = WebUntisTest;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -645,7 +646,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = io.noim.WebUntisTests;
 				PRODUCT_NAME = WebUntisTest;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
