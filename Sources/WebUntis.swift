@@ -19,7 +19,7 @@ func getURLSessionConfiguration() -> URLSessionConfiguration {
     return cfg;
 }
 
-public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
+public class WebUntis: EventManager, RequestInterceptor {
     
     public static var `default` = WebUntis();
     
@@ -56,7 +56,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     private var currentSession = "";
     private var sessionExpiresAt = Date();
     
-    private var sessionManager = Alamofire.SessionManager(configuration: getURLSessionConfiguration());
+    private var sessionManager = Session.default;
     
     private let lock = NSLock();
     
@@ -67,8 +67,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     public init(url: URL = Realm.Configuration().fileURL!.deletingLastPathComponent().appendingPathComponent("WebUntis.realm")) {
         super.init();
         dump(url);
-        sessionManager.adapter = self;
-        sessionManager.retrier = self;
+        self.sessionManager = Alamofire.Session(interceptor: self);
         self.realmPath = url;
         webuntisDateFormatter.dateFormat = "YYYYMMdd";
     }
@@ -154,11 +153,11 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                     "client": self.client
                 ]
             ];
-            Alamofire.request("https://\(server)/WebUntis/jsonrpc.do?school=\(school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).responseJSON { response in
+            AF.request("https://\(server)/WebUntis/jsonrpc.do?school=\(school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).responseJSON { response in
                 switch response.result {
                 case .success:
                     //
-                    guard let json = response.result.value as? [String: Any] else {
+                    guard let json = try? response.result.get() as? [String: Any] else {
                         reject(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil));
                         return;
                     }
@@ -245,10 +244,10 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         set {
             guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timetable") else {
                 try? realm.write {
-                    realm.add(RefreshTime(value: [
-                        "name": "timetable",
-                        "date": newValue
-                    ]), update: true)
+                    let rf = RefreshTime()
+                    rf.date = newValue;
+                    rf.name = "timetable";
+                    realm.add(rf, update: .all)
                 }
                 return;
             };
@@ -268,10 +267,10 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         set {
             guard let time = self.realm.object(ofType: RefreshTime.self, forPrimaryKey: "timegrid") else {
                 try? realm.write {
-                    realm.add(RefreshTime(value: [
-                        "name": "timetable",
-                        "date": newValue
-                    ]), update: true)
+                    let rf = RefreshTime()
+                    rf.date = newValue;
+                    rf.name = "timetable";
+                    realm.add(rf, update: .all)
                 }
                 return;
             };
@@ -385,7 +384,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                                         }
                                     }
                                     for lesson in lessons {
-                                        self.realm.add(LessonRealm(value: lesson.dictionary), update: true);
+                                        self.realm.add(LessonRealm(value: lesson.dictionary), update: .all);
                                     }
                                     try? self.realm.commitWrite();
                                     self.lastTimetableRefresh = Date()
@@ -413,10 +412,10 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                 "jsonrpc": "2.0",
                 "params": params
             ];
-            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPC { response in
+            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).response(responseSerializer: JSONRPCResponseSerializer()) { response in
                 switch response.result {
                 case .success:
-                    guard let result = response.result.value else {
+                    guard let result = try? response.result.get() else {
                         reject(getWebUntisErrorBy(type: .UNKNOWN, userInfo: nil));
                         return;
                     }
@@ -438,10 +437,10 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                 "jsonrpc": "2.0",
                 "params": params
             ];
-            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).validateWebUntisResponse().responseJSONRPCArray { response in
+            let r = self.sessionManager.request("https://\(self.server)/WebUntis/jsonrpc.do?school=\(self.school)", method: .post, parameters: JSONRPCBody, encoding: JSONEncoding.default).response(responseSerializer: JSONRPCResponseSerializerArray()) { response in
                 switch response.result {
                 case .success:
-                    guard let result = response.result.value else {
+                    guard let result = try? response.result.get() else {
                         reject(getWebUntisErrorBy(type: .UNKNOWN, userInfo: nil));
                         return;
                     }
@@ -466,7 +465,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         return self.credentialsSetAndValid;
     }
     
-    private var requestsToRetry: [RequestRetryCompletion] = []
+    private var requestsToRetry: [(RetryResult) -> Void] = []
     
     public func adapt(_ urlRequest: URLRequest) throws -> URLRequest {
         if self.isSessionNotTimedout() && self.currentSession != "" {
@@ -477,7 +476,7 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
         return urlRequest;
     }
     
-    public func should(_ manager: SessionManager, retry request: Request, with error: Error, completion: @escaping RequestRetryCompletion) {
+    public func retry(_ request: Request, for session: Session, dueTo error: Error, completion: @escaping (RetryResult) -> Void) {
         self.lock.lock() ; defer { self.lock.unlock() };
         if error.isWebUntisError(type: .UNAUTHORIZED) && self.credentialsSet() {
             requestsToRetry.append(completion);
@@ -488,17 +487,17 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
                 strongSelf.type = type;
                 strongSelf.sessionExpiresAt = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!;
                 strongSelf.lock.lock() ; defer { strongSelf.lock.unlock() }
-                strongSelf.requestsToRetry.forEach { $0(true, 0.0) }
+                strongSelf.requestsToRetry.forEach { $0(.retry) }
                 strongSelf.requestsToRetry.removeAll();
-            }.catch { [weak self] _ in
+            }.catch { [weak self] error in
                 guard let strongSelf = self else { return }
                 strongSelf.invalidateAccount(server: strongSelf.server, username: strongSelf.username, password: strongSelf.password, school: strongSelf.school)
                 strongSelf.lock.lock() ; defer { strongSelf.lock.unlock() }
-                strongSelf.requestsToRetry.forEach { $0(false, 0.0) }
+                strongSelf.requestsToRetry.forEach { $0(.doNotRetryWithError(error)) }
                 strongSelf.requestsToRetry.removeAll();
             };
         } else {
-            completion(false, 0.0);
+            completion(.doNotRetry);
         }
     }
     
@@ -568,81 +567,6 @@ public class WebUntis: EventManager, RequestAdapter, RequestRetrier {
     }
 }
 
-extension DataRequest {
-    
-    public func validateWebUntisResponse() -> Self {
-        return validate { request,response,data in
-            let json = try? JSONSerialization.jsonObject(with: data!, options: []);
-            guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
-            }
-            if let error = root["error"] as? [String: Any] {
-                guard let code = error["code"] as? Int else {
-                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_UNKNOWN_ERROR_CODE, userInfo: nil));
-                }
-                // TODO: Add more error codes
-                switch (code) {
-                case -8520:
-                    return .failure(getWebUntisErrorBy(type: .UNAUTHORIZED, userInfo: nil));
-                case -8509:
-                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_PERMISSION_DENIED, userInfo: nil));
-                case -32601:
-                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_METHOD_NOT_FOUND, userInfo: nil));
-                default:
-                    return .failure(getWebUntisErrorBy(type: .WEBUNTIS_UNKNOWN_ERROR_CODE, userInfo: nil));
-                }
-            }
-            return .success;
-        }
-    }
-    
-    static func jsonRPCResponseSerializer() -> DataResponseSerializer<[String: Any]> {
-        return DataResponseSerializer { request, response, data, error in
-            let json = try? JSONSerialization.jsonObject(with: data!, options: []);
-            guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
-            }
-            if let result = root["result"] as? [String: Any] {
-                return .success(result);
-            } else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_RESPONSE_MISSING_RESULT, userInfo: nil));
-            }
-        };
-    }
-    
-    static func jsonRPCResponseSerializerArray() -> DataResponseSerializer<[Any]> {
-        return DataResponseSerializer { request, response, data, error in
-            let json = try? JSONSerialization.jsonObject(with: data!, options: []);
-            guard let root = json as? [String: Any] else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_ERROR, userInfo: ["response": json]));
-            }
-            if let result = root["result"] as? [Any] {
-                return .success(result);
-            } else {
-                return .failure(getWebUntisErrorBy(type: .WEBUNTIS_SERVER_RESPONSE_MISSING_RESULT, userInfo: nil));
-            }
-        };
-    }
-    
-    @discardableResult
-    func responseJSONRPC(queue: DispatchQueue? = nil, options: JSONSerialization.ReadingOptions = .allowFragments, completionHandler: @escaping (DataResponse<[String: Any]>) -> Void) -> Self {
-        return response(
-            queue: queue,
-            responseSerializer: DataRequest.jsonRPCResponseSerializer(),
-            completionHandler: completionHandler
-        )
-    }
-    
-    @discardableResult
-    func responseJSONRPCArray(queue: DispatchQueue? = nil, options: JSONSerialization.ReadingOptions = .allowFragments, completionHandler: @escaping (DataResponse<[Any]>) -> Void) -> Self {
-        return response(
-            queue: queue,
-            responseSerializer: DataRequest.jsonRPCResponseSerializerArray(),
-            completionHandler: completionHandler
-        )
-    }
-}
-
 enum TimegridEntryType {
     case Start
     case End
@@ -708,7 +632,7 @@ extension Array where Element == TimegridEntry {
 
 public extension Array where Element == Lesson {
     
-    public func getVisibleLessons() -> [Lesson] {
+    func getVisibleLessons() -> [Lesson] {
         var lessons: [Lesson] = [];
         
         // Add all regular and irregular

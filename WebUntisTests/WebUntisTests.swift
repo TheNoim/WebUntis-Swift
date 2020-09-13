@@ -105,6 +105,7 @@ class WebUntisTests: XCTestCase {
             if result {
                 let startAndEndDay = Date.today().next(.monday);
                 let (start, end) = WebUntis.startAndEnd(of: startAndEndDay)
+                print("Start: \(start) End: \(end)")
                 WebUntis.default.getTimetable(between: start, and: end, forceRefresh: true).then { result in
                     print("Result 1: \(result)");
                     WebUntis.default.getTimetable(between: start, and: end, forceRefresh: false).then { result2 in
@@ -141,7 +142,10 @@ class WebUntisTests: XCTestCase {
             if result {
                 let options = [
                     "options": [
-                        "element": [:],
+                        "element": [
+                            "type": WebUntis.default.type,
+                            "id": WebUntis.default.id
+                        ],
                         "startDate": WebUntis.default.webuntisDateFormatter.string(from: Date()),
                         "endDate": WebUntis.default.webuntisDateFormatter.string(from: Date()),
                         "showInfo": true,

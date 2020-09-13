@@ -1,7 +1,7 @@
 
 Pod::Spec.new do |spec|
     spec.name = "WebUntis"
-    spec.version = "1.0.10"
+    spec.version = "1.1.0"
     spec.summary = "WebUntis Swift framework."
     spec.homepage = "https://noim.io"
     spec.license = { type: 'MIT', file: 'LICENSE' }
@@ -17,8 +17,8 @@ Pod::Spec.new do |spec|
     spec.source = { git: "https://github.com/TheNoim/WebUntis-Swift.git", tag: "v#{spec.version}", submodules: true }
     spec.source_files = "Sources/**/*.{h,swift}"
 
-    spec.dependency "PromisesSwift", "~> 1.2.8"
-    spec.dependency "Alamofire", "~> 4.9.1"
-    spec.dependency "RealmSwift", "~> 3.21.0"
-    spec.dependency "CryptoSwift", "~> 1.2.0"
+    spec.dependency "PromisesSwift", "~> 1.2.10"
+    spec.dependency "Alamofire", "~> 5.2.2"
+    spec.dependency "RealmSwift", "~> 5.3.6"
+    spec.dependency "CryptoSwift", "~> 1.3.1"
 end
