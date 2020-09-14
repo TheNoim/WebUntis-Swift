@@ -19,6 +19,6 @@ Pod::Spec.new do |spec|
 
     spec.dependency "PromisesSwift", "~> 1.2.10"
     spec.dependency "Alamofire", "~> 5.2.2"
-    spec.dependency "RealmSwift", "~> 5.3.6"
+    spec.dependency "RealmSwift", "~> 5.4.0"
     spec.dependency "CryptoSwift", "~> 1.3.1"
 end
